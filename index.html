@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="syntropd - Native AI subsystem for systemd, maintaining PID 1 inviolability with zero idle memory overhead.">
+  <meta name="theme-color" content="#0a0e17">
+  <title>syntropd — Native AI Subsystem for systemd</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-banner">
+    <span><span class="badge">RFC / SPECIFICATION</span> Native Varlink IPC &amp; systemd socket activation</span>
+    <span>•</span>
+    <span>Zero dynamic C dependencies</span>
+    <span>•</span>
+    <span>0 MB idle RAM footprint</span>
+  </div>
+
+  <!-- Header & Navigation -->
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <svg viewBox="0 0 64 64" width="28" height="28">
+          <defs>
+            <linearGradient id="nav-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d2b4"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="url(#nav-grad)" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="32" cy="32" r="6" fill="#00d2b4"/>
+          <line x1="32" y1="10" x2="32" y2="26" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="50" y1="44" x2="36" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="14" y1="44" x2="28" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>syntropd</span>
+      </a>
+
+      <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Overview</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
+        <li><a href="specifications.html">Varlink Specs</a></li>
+        <li><a href="daemons.html">Subsystems</a></li>
+        <li><a href="manual.html">Operator Manual</a></li>
+        <li><a href="quickstart.html">Quickstart</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/syntropd" class="github-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">
+        <span>●</span> NATIVE LINUX OPERATING SYSTEM SUBSYSTEM
+      </div>
+      <h1>
+        Baking AI into systemd as <br>
+        <span class="highlight">Native OS Primitives</span>
+      </h1>
+      <p class="hero-lead">
+        <strong>PID 1 remains strictly inviolable.</strong> <code>syntropd</code> introduces an unprivileged, modular daemon suite delivering autonomous crash supervision, hardware lease arbitration, sandboxed remediation, and pure-Rust neural inference across standard Linux systems.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="quickstart.html" class="btn btn-primary">Get Started</a>
+        <a href="architecture.html" class="btn btn-secondary">Explore Architecture →</a>
+        <a href="specifications.html" class="btn btn-secondary">Varlink IDL Specs</a>
+      </div>
+
+      <div class="hero-specs">
+        <div class="spec-pill">
+          <div class="spec-label">IPC Standard</div>
+          <div class="spec-value">Varlink &amp; SCM_RIGHTS</div>
+          <div class="spec-desc">Zero-copy null-terminated JSON IPC over AF_UNIX</div>
+        </div>
+        <div class="spec-pill">
+          <div class="spec-label">Idle Footprint</div>
+          <div class="spec-value">0 MB RAM</div>
+          <div class="spec-desc">Lazy socket-activation via systemd .socket units</div>
+        </div>
+        <div class="spec-pill">
+          <div class="spec-label">Triage Latency</div>
+          <div class="spec-value">&lt; 200 ms</div>
+          <div class="spec-desc">D-Bus signal to sandboxed remediation checkpoint</div>
+        </div>
+        <div class="spec-pill">
+          <div class="spec-label">Dynamic Deps</div>
+          <div class="spec-value">0 C Libraries</div>
+          <div class="spec-desc">100% safe, pure Rust (no libstdc++, no libgomp)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Wrap -->
+  <main class="main-wrap">
+
+    <!-- Mission & Architectural Philosophy -->
+    <section>
+      <div class="page-header" style="margin-bottom: 2rem;">
+        <div class="category">Core Philosophy</div>
+        <h2>The UNIX Way Meets Modern Machine Intelligence</h2>
+        <p>
+          AI belongs in user space, cleanly decoupled from PID 1. Rather than bloating the init system, syntropd adheres to the systemd modular architecture: small, isolated daemons with clearly bounded responsibilities communicating over standard Varlink sockets.
+        </p>
+      </div>
+
+      <div class="subsystem-grid">
+        <!-- inferenced -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">inferenced</div>
+              <div class="daemon-socket">/run/syntrop/io.syntrop.Inference1</div>
+            </div>
+            <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">ARBITER</span>
+          </div>
+          <p class="daemon-desc">
+            Heterogeneous accelerator discovery and compute lease arbiter. Discovers DRM GPU, NPU, and CPU AMX/AVX-512 extensions. Governs memory pressure via cgroups v2 and preempts batch workloads during system emergencies.
+          </p>
+          <ul class="daemon-features">
+            <li>Dynamic DRM render node discovery</li>
+            <li>Two-tier preemption (EmergencyTriage &gt; Batch)</li>
+            <li>Kernel PSI pressure monitoring (CPU, I/O, VRAM)</li>
+            <li>Sealed memfd zero-copy tensor passing</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">io.syntrop.Inference1</span>
+            <a href="daemons.html#inferenced">Details →</a>
+          </div>
+        </div>
+
+        <!-- modeld -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">modeld</div>
+              <div class="daemon-socket">/run/syntrop/io.syntrop.Model1</div>
+            </div>
+            <span class="badge" style="background: var(--purple-dim); color: var(--purple); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">STORAGE</span>
+          </div>
+          <p class="daemon-desc">
+            Content-Addressable Model Store under <code>/var/lib/models</code>. Deduplicates weights via filesystem reflinks, validates SHA-256 digests, and guarantees emergency triage models remain pinned in local storage.
+          </p>
+          <ul class="daemon-features">
+            <li>SHA-256 CAS repository with tag aliases</li>
+            <li>Reflink deduplication on Btrfs/XFS/ZFS</li>
+            <li>Autonomous LRU cache quota management</li>
+            <li>Zero-eviction pinning for triage models</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">io.syntrop.Model1</span>
+            <a href="daemons.html#modeld">Details →</a>
+          </div>
+        </div>
+
+        <!-- contextd -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">contextd</div>
+              <div class="daemon-socket">/run/syntrop/io.syntrop.Context1</div>
+            </div>
+            <span class="badge" style="background: var(--cyan-dim); color: var(--cyan); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">CHRONOLOGY</span>
+          </div>
+          <p class="daemon-desc">
+            Causality observer and configuration drift tracker. Observes unit drop-ins, package transactions (dnf/apt/pacman), and systemd journal events to correlate the exact chain of events leading to a failure.
+          </p>
+          <ul class="daemon-features">
+            <li>fanotify / inotify tracking of <code>/etc/systemd/system</code></li>
+            <li>Microsecond-precision causality ring buffer</li>
+            <li>Unified diff snapshotting before/after changes</li>
+            <li>Structured incident timeline extraction</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">io.syntrop.Context1</span>
+            <a href="daemons.html#contextd">Details →</a>
+          </div>
+        </div>
+
+        <!-- toold -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">toold</div>
+              <div class="daemon-socket">/run/syntrop/io.syntrop.Tool1</div>
+            </div>
+            <span class="badge" style="background: var(--amber-dim); color: var(--amber); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">REMEDIATION</span>
+          </div>
+          <p class="daemon-desc">
+            Sandboxed execution engine for safe diagnostic and remediating actions. Restricts tool execution using Linux Landlock LSM and seccomp filters, creating atomic filesystem snapshots before every mutation.
+          </p>
+          <ul class="daemon-features">
+            <li>Strict execution allowlist &amp; Polkit authentication</li>
+            <li>Landlock LSM unprivileged sandboxing</li>
+            <li>Automatic pre-execution rollback checkpoints</li>
+            <li>One-step deterministic remediation rollback</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">io.syntrop.Tool1</span>
+            <a href="daemons.html#toold">Details →</a>
+          </div>
+        </div>
+
+        <!-- runtimed -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">runtimed</div>
+              <div class="daemon-socket">/run/syntrop/io.syntrop.Runtime1</div>
+            </div>
+            <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">RUNTIME</span>
+          </div>
+          <p class="daemon-desc">
+            Pure-Rust neural model inference and embedding engine. In-process token generation and embedding computation with zero dynamic C dependencies, lazy socket activation, and zero background idle memory.
+          </p>
+          <ul class="daemon-features">
+            <li>GGUF model loader &amp; token generation</li>
+            <li>128-dim normalized semantic embeddings</li>
+            <li>DynamicUser unprivileged isolation</li>
+            <li>Socket-activated lifecycle with clean exit</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">io.syntrop.Runtime1</span>
+            <a href="daemons.html#runtimed">Details →</a>
+          </div>
+        </div>
+
+        <!-- syntropctl -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">syntropctl</div>
+              <div class="daemon-socket">Unified Operator Client</div>
+            </div>
+            <span class="badge" style="background: var(--green-dim); color: var(--green); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">CLI TOOL</span>
+          </div>
+          <p class="daemon-desc">
+            Unified companion CLI tool. Queries daemon health, introspects hardware accelerators, inspects configuration drift diffs, generates shell completions, and formats diagnostic outputs cleanly for humans and JSON consumers.
+          </p>
+          <ul class="daemon-features">
+            <li><code>syntropctl status</code> - Health &amp; latency probe</li>
+            <li><code>syntropctl explain &lt;unit&gt;</code> - Automated root-cause</li>
+            <li><code>syntropctl devices</code> - DRM GPU / NPU topologies</li>
+            <li><code>syntropctl drift</code> - Config chronology diffs</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">syntropctl(1)</span>
+            <a href="manual.html">Manual →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Terminal Showcase -->
+    <section style="margin-top: 2rem;">
+      <div class="page-header" style="margin-bottom: 1.5rem;">
+        <div class="category">Operator Experience</div>
+        <h2>Inspect &amp; Diagnose with <code>syntropctl</code></h2>
+        <p>Deterministic command-line tools modeled directly after <code>systemctl</code> and <code>journalctl</code>.</p>
+      </div>
+
+      <div class="code-header">
+        <span>$ syntropctl status</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>DAEMON       SOCKET                                  STATE    LATENCY   INTERFACES
+inferenced   /run/syntrop/io.syntrop.Inference1      ACTIVE    0.41ms   io.syntrop.Inference1, org.varlink.service
+modeld       /run/syntrop/io.syntrop.Model1          ACTIVE    0.32ms   io.syntrop.Model1, org.varlink.service
+contextd     /run/syntrop/io.syntrop.Context1        ACTIVE    0.28ms   io.syntrop.Context1, org.varlink.service
+toold        /run/syntrop/io.syntrop.Tool1           ACTIVE    0.35ms   io.syntrop.Tool1, org.varlink.service
+runtimed     /run/syntrop/io.syntrop.Runtime1        STANDBY   0.15ms   io.syntrop.Runtime1, org.varlink.service
+
+System Status: OPERATIONAL (All 5 sockets listening; 0 MB idle RAM footprint)</code></pre>
+
+      <div class="code-header" style="margin-top: 1.5rem;">
+        <span>$ syntropctl explain payment-service.service</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>● payment-service.service - Core Payment Processing Daemon
+     Loaded: loaded (/etc/systemd/system/payment-service.service; enabled)
+     Active: failed (Result: exit-code) since Wed 2026-09-24 05:14:22 UTC; 18s ago
+   Main PID: 84920 (code=exited, status=1/FAILURE)
+
+TRIAGE ANALYSIS (Root-Cause Correlation):
+  ├─ Chronology: /etc/systemd/system/payment-service.service.d/override.conf modified 2m ago
+  ├─ Config Drift: MemoryMax was reduced from 8G -> 512M
+  ├─ Kernel PSI: Memory pressure spiked to 92.4% prior to SIGKILL
+  └─ Conclusion: Out-of-memory termination caused by insufficient cgroup limit.
+
+RECOMMENDED REMEDIATION:
+  Execute safe drop-in rollback checkpoint:
+  $ syntropctl run rollback rb-84920-1a
+  Or restore limit:
+  # systemctl revert payment-service.service</code></pre>
+    </section>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="brand">
+          <svg viewBox="0 0 64 64" width="24" height="24">
+            <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="32" cy="32" r="5" fill="#00d2b4"/>
+          </svg>
+          <span>syntropd</span>
+        </div>
+        <p>Baking AI into systemd as native OS primitives, keeping PID 1 inviolable. Pure Rust, standard Varlink IPC, zero idle footprint.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Architecture</h4>
+        <ul>
+          <li><a href="architecture.html#topology">Subsystem Topology</a></li>
+          <li><a href="architecture.html#triage">Emergency Triage Flow</a></li>
+          <li><a href="architecture.html#socket">Socket Activation Model</a></li>
+          <li><a href="daemons.html">Daemons Catalog</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Specifications</h4>
+        <ul>
+          <li><a href="specifications.html#inference">io.syntrop.Inference1</a></li>
+          <li><a href="specifications.html#model">io.syntrop.Model1</a></li>
+          <li><a href="specifications.html#context">io.syntrop.Context1</a></li>
+          <li><a href="specifications.html#tool">io.syntrop.Tool1</a></li>
+          <li><a href="specifications.html#runtime">io.syntrop.Runtime1</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="quickstart.html">Quickstart Guide</a></li>
+          <li><a href="manual.html">syntropctl Manual</a></li>
+          <li><a href="https://github.com/syntropd" target="_blank" rel="noopener noreferrer">GitHub Organization</a></li>
+          <li><a href="https://varlink.org" target="_blank" rel="noopener noreferrer">Varlink Standard</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 syntropd Project Contributors • Dual-licensed Apache-2.0 / MIT</span>
+      <span>Designed for Linux 6.x+ &amp; systemd v252+</span>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

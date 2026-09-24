@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="syntropd Architecture - Subsystem Topology, Emergency Triage Flow, and Zero-Idle Socket Activation.">
+  <meta name="theme-color" content="#0a0e17">
+  <title>Architecture &amp; Topology — syntropd</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-banner">
+    <span><span class="badge">TOPOLOGY</span> Clean User-Space Decoupling from PID 1</span>
+    <span>•</span>
+    <span>Click any architecture node below to inspect live kernel bindings</span>
+  </div>
+
+  <!-- Header & Navigation -->
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <svg viewBox="0 0 64 64" width="28" height="28">
+          <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="32" cy="32" r="6" fill="#00d2b4"/>
+          <line x1="32" y1="10" x2="32" y2="26" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="50" y1="44" x2="36" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="14" y1="44" x2="28" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>syntropd</span>
+      </a>
+
+      <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
+      <ul class="nav-links">
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="architecture.html" class="active">Architecture</a></li>
+        <li><a href="specifications.html">Varlink Specs</a></li>
+        <li><a href="daemons.html">Subsystems</a></li>
+        <li><a href="manual.html">Operator Manual</a></li>
+        <li><a href="quickstart.html">Quickstart</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/syntropd" class="github-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Wrap -->
+  <main class="main-wrap">
+
+    <div class="page-header">
+      <div class="category">System Architecture</div>
+      <h1>Subsystem Topology &amp; Control Plane</h1>
+      <p>
+        syntropd is engineered around three fundamental tenets: unprivileged execution, asynchronous Varlink IPC over Unix domain sockets, and deterministic circuit breaking.
+      </p>
+    </div>
+
+    <!-- Section 1: Subsystem Topology Diagram -->
+    <section id="topology" class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>1. Subsystem Topology</h2>
+          <p>Interactive vector diagram. Click any node below to inspect its Varlink socket, cgroup limits, and kernel primitives.</p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(0,210,180,0.3);">INTERACTIVE</span>
+      </div>
+
+      <div class="diagram-viewport">
+        <svg class="interactive-arch" viewBox="0 0 960 480" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Groups -->
+          <rect x="15" y="15" width="930" height="90" rx="8" fill="#111827" stroke="#223249" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <text x="35" y="42" fill="#64748b" font-family="ui-monospace, monospace" font-size="11" font-weight="700" letter-spacing="1">LAYER 1: USER-SPACE OPERATORS &amp; SYSTEMD SERVICES</text>
+
+          <rect x="15" y="130" width="930" height="210" rx="8" fill="#111827" stroke="#00d2b4" stroke-width="1.5"/>
+          <text x="35" y="155" fill="#00d2b4" font-family="ui-monospace, monospace" font-size="11" font-weight="700" letter-spacing="1">LAYER 2: SYNTROPD UNPRIVILEGED DAEMON ENCLAVE (AF_UNIX /run/syntrop/*)</text>
+
+          <rect x="15" y="365" width="930" height="95" rx="8" fill="#111827" stroke="#223249" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <text x="35" y="390" fill="#64748b" font-family="ui-monospace, monospace" font-size="11" font-weight="700" letter-spacing="1">LAYER 3: LINUX KERNEL INTERFACES &amp; HARDWARE ACCELERATORS</text>
+
+          <!-- Layer 1 Nodes -->
+          <g class="arch-node" data-node="syntropctl" transform="translate(50, 45)">
+            <rect width="180" height="44" rx="6" fill="#162032" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="90" y="24" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700" text-anchor="middle">syntropctl</text>
+            <text x="90" y="37" fill="#94a3b8" font-family="sans-serif" font-size="10" text-anchor="middle">Unified Operator CLI</text>
+          </g>
+
+          <g class="arch-node" data-node="sentry" transform="translate(390, 45)">
+            <rect width="200" height="44" rx="6" fill="#162032" stroke="#f43f5e" stroke-width="1.5"/>
+            <text x="100" y="24" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700" text-anchor="middle">systemd-sentry</text>
+            <text x="100" y="37" fill="#f43f5e" font-family="sans-serif" font-size="10" text-anchor="middle">Crash Interception Enclave</text>
+          </g>
+
+          <g transform="translate(730, 45)">
+            <rect width="180" height="44" rx="6" fill="#162032" stroke="#475569" stroke-width="1.5"/>
+            <text x="90" y="24" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="13" font-weight="600" text-anchor="middle">*.service Units</text>
+            <text x="90" y="37" fill="#64748b" font-family="sans-serif" font-size="10" text-anchor="middle">Target Workloads</text>
+          </g>
+
+          <!-- Layer 2 Daemons -->
+          <!-- inferenced -->
+          <g class="arch-node" data-node="inferenced" transform="translate(45, 180)">
+            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="25" cy="25" r="5" fill="#00d2b4"/>
+            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">inferenced</text>
+            <text x="18" y="55" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Inference1</text>
+            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
+            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• DRM GPU Discovery</text>
+            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Two-Tier Leases</text>
+            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• PSI Preemption</text>
+          </g>
+
+          <!-- modeld -->
+          <g class="arch-node" data-node="modeld" transform="translate(225, 180)">
+            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="25" cy="25" r="5" fill="#a855f7"/>
+            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">modeld</text>
+            <text x="18" y="55" fill="#a855f7" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Model1</text>
+            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
+            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• SHA-256 CAS</text>
+            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Reflink Dedup</text>
+            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Triage Pinning</text>
+          </g>
+
+          <!-- contextd -->
+          <g class="arch-node" data-node="contextd" transform="translate(405, 180)">
+            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="25" cy="25" r="5" fill="#38bdf8"/>
+            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">contextd</text>
+            <text x="18" y="55" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Context1</text>
+            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
+            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• Journal Slicing</text>
+            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Config Diffs</text>
+            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Event Chronology</text>
+          </g>
+
+          <!-- toold -->
+          <g class="arch-node" data-node="toold" transform="translate(585, 180)">
+            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="25" cy="25" r="5" fill="#f59e0b"/>
+            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">toold</text>
+            <text x="18" y="55" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Tool1</text>
+            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
+            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• Landlock Sandbox</text>
+            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Polkit Access</text>
+            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Atomic Rollbacks</text>
+          </g>
+
+          <!-- runtimed -->
+          <g class="arch-node" data-node="runtimed" transform="translate(765, 180)">
+            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="25" cy="25" r="5" fill="#10b981"/>
+            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">runtimed</text>
+            <text x="18" y="55" fill="#10b981" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Runtime1</text>
+            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
+            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• In-Process GGUF</text>
+            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• 128-dim Embed</text>
+            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Zero-C Deps</text>
+          </g>
+
+          <!-- Layer 3 Primitives -->
+          <g transform="translate(45, 400)">
+            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">DRM / dev-dri-*</text>
+          </g>
+
+          <g transform="translate(195, 400)">
+            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">reflink / CAS</text>
+          </g>
+
+          <g transform="translate(345, 400)">
+            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">fanotify / journal</text>
+          </g>
+
+          <g transform="translate(495, 400)">
+            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">cgroups v2 / PSI</text>
+          </g>
+
+          <g transform="translate(645, 400)">
+            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">Landlock / seccomp</text>
+          </g>
+
+          <g transform="translate(795, 400)">
+            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">sealed memfd</text>
+          </g>
+
+          <!-- Interconnect Lines -->
+          <line x1="140" y1="89" x2="120" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="300" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="480" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="660" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="840" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+          <line x1="490" y1="89" x2="480" y2="180" stroke="#f43f5e" stroke-width="2"/>
+          <line x1="490" y1="89" x2="120" y2="180" stroke="#f43f5e" stroke-width="2"/>
+        </svg>
+      </div>
+
+      <!-- Inspector Panel (Populated on click) -->
+      <div id="arch-inspector" class="inspector-panel visible">
+        <div class="inspector-title">
+          <span>inferenced.service (Compute &amp; Arbitration Broker)</span>
+          <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.15rem 0.5rem; font-size: 0.75rem; border-radius: 4px; border: 1px solid rgba(0,210,180,0.3);">ACTIVE COMPONENT</span>
+        </div>
+        <p style="margin: 0.75rem 0; font-size: 0.92rem; color: var(--text-muted);">
+          Discovers heterogeneous accelerators (DRM GPU, NPU, CPU AMX/AVX-512) and arbitrates VRAM/RAM allocations. Issues leases with priority tiers (EmergencyTriage &gt; Interactive &gt; Batch). Preempts batch inference workloads via cgroup.freeze during service incidents.
+        </p>
+        <div class="inspector-meta">
+          <div class="meta-item">
+            <span>Varlink Socket</span>
+            <code>/run/syntrop/io.syntrop.Inference1</code>
+          </div>
+          <div class="meta-item">
+            <span>Primary Interface</span>
+            <code>io.syntrop.Inference1</code>
+          </div>
+          <div class="meta-item">
+            <span>Kernel Primitives</span>
+            <div style="font-size: 0.8rem; margin-top: 0.2rem; color: var(--text-main);">DRM/accel, cgroups v2, PSI, sealed memfd</div>
+          </div>
+          <div class="meta-item">
+            <span>systemd Security</span>
+            <div style="font-size: 0.8rem; margin-top: 0.2rem; color: var(--teal);">DynamicUser=yes, ProtectSystem=strict</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Emergency Triage Flow -->
+    <section id="triage" class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>2. The Emergency Triage Flow (Sub-200ms Incident Recovery)</h2>
+          <p>
+            When a monitored service crashes, syntropd executes a coordinated 7-phase root-cause recovery pipeline without taking locks or blocking PID 1.
+          </p>
+        </div>
+        <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(244,63,94,0.3);">TOTAL BUDGET &lt; 200ms</span>
+      </div>
+
+      <div id="triage-stepper" class="stepper-container">
+        <!-- Interactive Buttons -->
+        <div class="step-tracker">
+          <button class="step-btn active"><span class="step-num">1</span> Signal Intercept</button>
+          <button class="step-btn"><span class="step-num">2</span> Journal Slicing</button>
+          <button class="step-btn"><span class="step-num">3</span> Drift Correlation</button>
+          <button class="step-btn"><span class="step-num">4</span> Preempt &amp; Lease</button>
+          <button class="step-btn"><span class="step-num">5</span> Token Generation</button>
+          <button class="step-btn"><span class="step-num">6</span> Landlock Fix</button>
+          <button class="step-btn"><span class="step-num">7</span> Restore &amp; Audit</button>
+        </div>
+
+        <!-- Card Content (Dynamically updated by app.js) -->
+        <div class="step-content-card">
+          <!-- Populated by initTriageStepper() in app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Zero-Idle Socket Activation Model -->
+    <section id="socket" class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>3. Zero-Idle Socket Activation Model (0 MB Footprint)</h2>
+          <p>
+            Enterprise fleets cannot afford background daemons consuming idle memory. syntropd leverages systemd socket activation so daemons exist only when actively processing requests.
+          </p>
+        </div>
+        <span class="badge" style="background: var(--green-dim); color: var(--green); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(16,185,129,0.3);">0 MB IDLE RAM</span>
+      </div>
+
+      <div class="diagram-viewport">
+        <svg viewBox="0 0 920 260" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto;">
+          <!-- Timeline Axis -->
+          <line x1="50" y1="130" x2="870" y2="130" stroke="#223249" stroke-width="2"/>
+          <polygon points="870,126 880,130 870,134" fill="#223249"/>
+
+          <!-- Step 1: Boot -->
+          <circle cx="100" cy="130" r="14" fill="#162032" stroke="#38bdf8" stroke-width="2"/>
+          <text x="100" y="134" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">1</text>
+          <rect x="30" y="30" width="140" height="70" rx="6" fill="#111827" stroke="#223249"/>
+          <text x="100" y="52" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">Boot: .socket Only</text>
+          <text x="100" y="70" fill="#94a3b8" font-family="sans-serif" font-size="9" text-anchor="middle">PID 1 listens on /run/syntrop/*</text>
+          <text x="100" y="85" fill="#10b981" font-family="ui-monospace, monospace" font-size="10" font-weight="700" text-anchor="middle">RAM: 0 MB</text>
+
+          <!-- Step 2: Inbound Call -->
+          <circle cx="340" cy="130" r="14" fill="#162032" stroke="#f59e0b" stroke-width="2"/>
+          <text x="340" y="134" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">2</text>
+          <rect x="270" y="160" width="140" height="70" rx="6" fill="#111827" stroke="#223249"/>
+          <text x="340" y="182" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">First Call Received</text>
+          <text x="340" y="200" fill="#94a3b8" font-family="sans-serif" font-size="9" text-anchor="middle">LISTEN_FDS handoff</text>
+          <text x="340" y="215" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="10" font-weight="700" text-anchor="middle">Startup: &lt; 15 ms</text>
+
+          <!-- Step 3: Active Processing -->
+          <circle cx="580" cy="130" r="14" fill="#162032" stroke="#00d2b4" stroke-width="2"/>
+          <text x="580" y="134" fill="#00d2b4" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">3</text>
+          <rect x="510" y="30" width="140" height="70" rx="6" fill="#111827" stroke="#223249"/>
+          <text x="580" y="52" fill="#00d2b4" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">Active Processing</text>
+          <text x="580" y="70" fill="#94a3b8" font-family="sans-serif" font-size="9" text-anchor="middle">Streams Varlink replies</text>
+          <text x="580" y="85" fill="#00d2b4" font-family="ui-monospace, monospace" font-size="10" font-weight="700" text-anchor="middle">RAM: ~12 MB</text>
+
+          <!-- Step 4: Idle Teardown -->
+          <circle cx="820" cy="130" r="14" fill="#162032" stroke="#10b981" stroke-width="2"/>
+          <text x="820" y="134" fill="#10b981" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">4</text>
+          <rect x="750" y="160" width="140" height="70" rx="6" fill="#111827" stroke="#223249"/>
+          <text x="820" y="182" fill="#10b981" font-family="ui-monospace, monospace" font-size="11" font-weight="700" text-anchor="middle">Inactivity Expiry</text>
+          <text x="820" y="200" fill="#94a3b8" font-family="sans-serif" font-size="9" text-anchor="middle">Daemon calls exit(0)</text>
+          <text x="820" y="215" fill="#10b981" font-family="ui-monospace, monospace" font-size="10" font-weight="700" text-anchor="middle">RAM: 0 MB Returned</text>
+        </svg>
+      </div>
+
+      <div class="callout" style="margin-top: 1.5rem;">
+        <div class="callout-title">HOW IT WORKS IN SYSTEMD</div>
+        <p>
+          Each daemon ships with paired <code>.socket</code> and <code>.service</code> units. The socket unit specifies <code>ListenStream=/run/syntrop/io.syntrop.&lt;Name&gt;1</code> and <code>SocketMode=0660</code>. At system boot, systemd creates the file descriptor. No daemon process runs until a client calls <code>connect()</code> on the socket. When active work ceases, the daemon terminates cleanly after its idle window, returning all resident memory back to the kernel page allocator.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="brand">
+          <svg viewBox="0 0 64 64" width="24" height="24">
+            <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="32" cy="32" r="5" fill="#00d2b4"/>
+          </svg>
+          <span>syntropd</span>
+        </div>
+        <p>Baking AI into systemd as native OS primitives, keeping PID 1 inviolable.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="specifications.html">Varlink Specs</a></li>
+          <li><a href="daemons.html">Subsystems</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="manual.html">Operator Manual</a></li>
+          <li><a href="quickstart.html">Quickstart</a></li>
+          <li><a href="https://github.com/syntropd" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li>Dual Apache-2.0 / MIT</li>
+          <li>ASD-STE100 Conformance</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 syntropd Project Contributors</span>
+      <span>Subsystem Architecture Reference v0.1.0</span>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

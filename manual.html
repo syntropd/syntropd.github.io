@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="syntropctl Operator Manual - Comprehensive command reference, examples, flags, and systemd integration.">
+  <meta name="theme-color" content="#0a0e17">
+  <title>Operator Manual — syntropctl</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-banner">
+    <span><span class="badge">OPERATOR MANUAL</span> syntropctl(1) Reference Guide</span>
+    <span>•</span>
+    <span>System administration &amp; automated failure triage</span>
+  </div>
+
+  <!-- Header & Navigation -->
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <svg viewBox="0 0 64 64" width="28" height="28">
+          <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="32" cy="32" r="6" fill="#00d2b4"/>
+          <line x1="32" y1="10" x2="32" y2="26" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="50" y1="44" x2="36" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="14" y1="44" x2="28" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>syntropd</span>
+      </a>
+
+      <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
+      <ul class="nav-links">
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
+        <li><a href="specifications.html">Varlink Specs</a></li>
+        <li><a href="daemons.html">Subsystems</a></li>
+        <li><a href="manual.html" class="active">Operator Manual</a></li>
+        <li><a href="quickstart.html">Quickstart</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/syntropd" class="github-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-wrap">
+
+    <div class="page-header">
+      <div class="category">Command-Line Reference</div>
+      <h1>syntropctl(1) — Unified Operator Manual</h1>
+      <p>
+        <code>syntropctl</code> is the primary control utility for interacting with the syntropd daemon suite. It connects directly over Varlink Unix domain sockets, offering both human-friendly table outputs and structured <code>--json</code> streams.
+      </p>
+    </div>
+
+    <!-- Global Flags -->
+    <section class="diagram-card">
+      <h2>Global Options</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>--json</code></td>
+              <td>Boolean</td>
+              <td>Format all output as machine-readable JSON for automation and jq processing.</td>
+            </tr>
+            <tr>
+              <td><code>-v, --verbose</code></td>
+              <td>Count</td>
+              <td>Enable detailed debug logging to stderr including raw Varlink messages.</td>
+            </tr>
+            <tr>
+              <td><code>-h, --help</code></td>
+              <td>Flag</td>
+              <td>Print help information and subcommand summary.</td>
+            </tr>
+            <tr>
+              <td><code>-V, --version</code></td>
+              <td>Flag</td>
+              <td>Print version information.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Subcommand 1: status -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>1. <code>syntropctl status [DAEMON]</code></h2>
+          <p>Inspects daemon socket connectivity, round-trip latency, and interface health.</p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">DIAGNOSTIC</span>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1rem;">
+        Sends an <code>org.varlink.service.GetInfo</code> ping to all active sockets under <code>/run/syntrop/</code>.
+      </p>
+
+      <div class="code-header">
+        <span>$ syntropctl status</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>DAEMON       SOCKET                                  STATE    LATENCY   INTERFACES
+inferenced   /run/syntrop/io.syntrop.Inference1      ACTIVE    0.41ms   io.syntrop.Inference1, org.varlink.service
+modeld       /run/syntrop/io.syntrop.Model1          ACTIVE    0.32ms   io.syntrop.Model1, org.varlink.service
+contextd     /run/syntrop/io.syntrop.Context1        ACTIVE    0.28ms   io.syntrop.Context1, org.varlink.service
+toold        /run/syntrop/io.syntrop.Tool1           ACTIVE    0.35ms   io.syntrop.Tool1, org.varlink.service
+runtimed     /run/syntrop/io.syntrop.Runtime1        STANDBY   0.15ms   io.syntrop.Runtime1, org.varlink.service
+
+System Status: OPERATIONAL (All 5 sockets listening; 0 MB idle RAM footprint)</code></pre>
+    </section>
+
+    <!-- Subcommand 2: explain -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>2. <code>syntropctl explain &lt;UNIT&gt;</code></h2>
+          <p>Diagnose failure or state of a target systemd service unit using AI correlation.</p>
+        </div>
+        <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">TRIAGE</span>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1rem;">
+        Executes an end-to-end incident triage inquiry. Correlates unit failure signals with recent configuration drift, journal logs, and PSI pressure to pinpoint exact root causes.
+      </p>
+
+      <div class="code-header">
+        <span>$ syntropctl explain nginx.service</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>● nginx.service - The NGINX HTTP and reverse proxy server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled)
+     Active: failed (Result: exit-code) since Wed 2026-09-24 04:52:10 UTC; 42s ago
+
+INCIDENT CHRONOLOGY:
+  ├─ 04:50:12: Package upgrade 'openssl-libs' (3.0.7 -> 3.2.0)
+  ├─ 04:51:30: Config modified: /etc/nginx/nginx.conf (+ssl_protocols TLSv1.3)
+  └─ 04:52:10: Process terminated with status 1 (nginx: [emerg] invalid directive)
+
+ROOT CAUSE ANALYSIS:
+  The directive 'ssl_protocols TLSv1.3' inside http {} block conflicts with
+  upstream template syntax in /etc/nginx/conf.d/default.conf line 14.
+
+SUGGESTED ACTION:
+  # systemctl revert nginx.service
+  Or run automated remediation:
+  $ syntropctl run revert_config /etc/nginx/nginx.conf</code></pre>
+    </section>
+
+    <!-- Subcommand 3: devices -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>3. <code>syntropctl devices</code></h2>
+          <p>Inspect compute accelerators, VRAM allocation, and PSI pressure stalls.</p>
+        </div>
+        <span class="badge" style="background: var(--cyan-dim); color: var(--cyan); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">HARDWARE</span>
+      </div>
+
+      <div class="code-header">
+        <span>$ syntropctl devices</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>PLANE ID           KIND       DEVICE NAME                 TOTAL VRAM   ALLOCATED    PRESSURE
+drm-renderD128     DRM_GPU    NVIDIA GeForce RTX 4090     24.00 GiB     8.25 GiB    Normal (0.0% some)
+cpu-amx-0          CPU_AMX    Intel Xeon Platinum 8480+   64.00 GiB     0.00 GiB    Normal (0.2% some)
+
+Active Leases:
+  lease-4921-bc  [Interactive]     payment.service   4.00 GiB  (plane: drm-renderD128)
+  lease-7712-aa  [EmergencyTriage] sentry-enclave    4.25 GiB  (plane: drm-renderD128)</code></pre>
+    </section>
+
+    <!-- Subcommand 4: models -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>4. <code>syntropctl models [ACTION]</code></h2>
+          <p>Manage content-addressable model cache in <code>/var/lib/models</code>.</p>
+        </div>
+        <span class="badge" style="background: var(--purple-dim); color: var(--purple); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">STORAGE</span>
+      </div>
+
+      <div class="code-header">
+        <span>$ syntropctl models</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>MODEL ID                 FORMAT   DIGEST (SHA-256)      SIZE       PINNED   STATUS
+qwen2.5-coder-7b         GGUF     sha256:7f9a12bc81...  4.48 GiB   YES      RESIDENT
+deepseek-r1-distill-1.5b GGUF     sha256:3a1b94cd72...  1.12 GiB   YES      IDLE
+phi-4-mini               GGUF     sha256:c0812efd11...  2.45 GiB   NO       EVICTABLE
+
+CAS Storage Quota: 8.05 GiB / 32.00 GiB (25.1% utilized)</code></pre>
+    </section>
+
+    <!-- Subcommand 5: drift -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>5. <code>syntropctl drift [UNIT]</code></h2>
+          <p>Inspect system configuration modifications and chronological audit logs.</p>
+        </div>
+        <span class="badge" style="background: var(--amber-dim); color: var(--amber); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">CHRONOLOGY</span>
+      </div>
+
+      <div class="code-header">
+        <span>$ syntropctl drift --since 1h</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>TIME (UTC)         SUBSYSTEM   TARGET FILE / UNIT                       EVENT TYPE
+04:51:30 (12m ago) contextd    /etc/nginx/nginx.conf                    CONFIG_MODIFIED
+04:50:12 (13m ago) rpm-ostree  openssl-libs (3.0.7 -> 3.2.0)            PKG_UPGRADE
+04:12:05 (51m ago) toold       /etc/systemd/system/redis.service.d/     DROPIN_RESTORED</code></pre>
+    </section>
+
+    <!-- systemd Unit Drop-In Integration -->
+    <section class="diagram-card" style="margin-top: 2rem;">
+      <div class="diagram-header">
+        <div>
+          <h2>Automated Unit Triage with systemd Drop-ins</h2>
+          <p>Configure any mission-critical systemd service to automatically trigger AI-driven triage on failure.</p>
+        </div>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
+        Add a standard systemd drop-in file to your service (e.g. <code>/etc/systemd/system/app.service.d/triage.conf</code>):
+      </p>
+
+      <div class="code-header">
+        <span>/etc/systemd/system/app.service.d/triage.conf</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[Unit]
+# OnFailure automatically invokes the syntrop-triage template unit passing the failed unit name (%n)
+OnFailure=syntrop-triage@%n.service</code></pre>
+
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin: 1rem 0;">
+        When <code>app.service</code> enters the failed state, systemd PID 1 starts <code>syntrop-triage@app.service.service</code>:
+      </p>
+
+      <div class="code-header">
+        <span>/usr/lib/systemd/system/syntrop-triage@.service</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[Unit]
+Description=syntropd Autonomous Triage for %I
+Documentation=https://syntropd.github.io/manual.html
+After=syntrop-sockets.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/syntropctl explain --auto-remediate %I
+StandardOutput=journal
+StandardError=journal</code></pre>
+    </section>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="brand">
+          <svg viewBox="0 0 64 64" width="24" height="24">
+            <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="32" cy="32" r="5" fill="#00d2b4"/>
+          </svg>
+          <span>syntropd</span>
+        </div>
+        <p>Baking AI into systemd as native OS primitives, keeping PID 1 inviolable.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="specifications.html">Varlink Specs</a></li>
+          <li><a href="daemons.html">Subsystems</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="manual.html">Operator Manual</a></li>
+          <li><a href="quickstart.html">Quickstart</a></li>
+          <li><a href="https://github.com/syntropd" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li>Dual Apache-2.0 / MIT</li>
+          <li>ASD-STE100 Conformance</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 syntropd Project Contributors</span>
+      <span>Operator Manual v0.1.0</span>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="syntropd Varlink Protocol Specifications - Native IDL definitions, method signatures, types, and schemas.">
+  <meta name="theme-color" content="#0a0e17">
+  <title>Varlink Protocol Specifications — syntropd</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-banner">
+    <span><span class="badge">SPECIFICATION</span> Official Varlink Interface Definitions (IDL)</span>
+    <span>•</span>
+    <span>Compliant with org.varlink.service introspection</span>
+  </div>
+
+  <!-- Header & Navigation -->
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <svg viewBox="0 0 64 64" width="28" height="28">
+          <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="32" cy="32" r="6" fill="#00d2b4"/>
+          <line x1="32" y1="10" x2="32" y2="26" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="50" y1="44" x2="36" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="14" y1="44" x2="28" y2="35" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>syntropd</span>
+      </a>
+
+      <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
+      <ul class="nav-links">
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
+        <li><a href="specifications.html" class="active">Varlink Specs</a></li>
+        <li><a href="daemons.html">Subsystems</a></li>
+        <li><a href="manual.html">Operator Manual</a></li>
+        <li><a href="quickstart.html">Quickstart</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/syntropd" class="github-btn" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-wrap">
+
+    <div class="page-header">
+      <div class="category">Interface Definition Language</div>
+      <h1>Varlink IPC Specifications</h1>
+      <p>
+        syntropd relies exclusively on native Varlink IPC over Unix domain sockets. Messages consist of null-terminated UTF-8 JSON payloads with native support for type checking, error declarations, and streaming replies.
+      </p>
+    </div>
+
+    <!-- Interactive Varlink Specification Browser -->
+    <div id="varlink-browser" class="spec-browser-layout">
+
+      <!-- Navigation Sidebar -->
+      <aside class="spec-sidebar">
+        <div class="spec-nav-group">
+          <div class="spec-nav-title">Daemon Interfaces</div>
+          <ul class="spec-nav-list">
+            <li><a id="inference" class="spec-nav-link active" data-spec="inferenced" href="#inference">io.syntrop.Inference1</a></li>
+            <li><a id="model" class="spec-nav-link" data-spec="modeld" href="#model">io.syntrop.Model1</a></li>
+            <li><a id="context" class="spec-nav-link" data-spec="contextd" href="#context">io.syntrop.Context1</a></li>
+            <li><a id="tool" class="spec-nav-link" data-spec="toold" href="#tool">io.syntrop.Tool1</a></li>
+            <li><a id="runtime" class="spec-nav-link" data-spec="runtimed" href="#runtime">io.syntrop.Runtime1</a></li>
+          </ul>
+        </div>
+
+        <div class="spec-nav-group">
+          <div class="spec-nav-title">Standard Introspection</div>
+          <ul class="spec-nav-list">
+            <li><a id="service" class="spec-nav-link" data-spec="service" href="#service">org.varlink.service</a></li>
+          </ul>
+        </div>
+
+        <div class="callout" style="padding: 0.75rem; margin: 1rem 0 0;">
+          <div class="callout-title" style="font-size: 0.7rem;">IPC STANDARD</div>
+          <p style="font-size: 0.78rem; color: var(--text-dim);">
+            Varlink sockets reside in <code>/run/syntrop/</code>. Each socket supports standard <code>varlinkctl</code> queries.
+          </p>
+        </div>
+      </aside>
+
+      <!-- Main Specification Viewer -->
+      <section class="spec-view">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h2 id="spec-name" style="font-family: var(--font-mono); font-size: 1.5rem; color: var(--teal);">io.syntrop.Inference1</h2>
+            <div style="margin-top: 0.25rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);">Socket: </span>
+              <code id="spec-socket" style="color: var(--cyan);">/run/syntrop/io.syntrop.Inference1</code>
+            </div>
+          </div>
+          <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(0,210,180,0.3);">VARLINK v1.0</span>
+        </div>
+
+        <p id="spec-desc" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+          Hardware compute discovery, multi-accelerator lease arbitration, PSI telemetry, and streaming model inference.
+        </p>
+
+        <!-- IDL Block -->
+        <div class="code-header">
+          <span>VARLINK IDL DEFINITION</span>
+          <button class="copy-btn" data-target="spec-idl">Copy IDL</button>
+        </div>
+        <pre><code id="spec-idl">interface io.syntrop.Inference1
+
+type ComputePlane (
+  id: string,
+  name: string,
+  kind: string,
+  total_memory: int,
+  available_memory: int,
+  is_triage_reserved: bool
+)
+
+type LeaseInfo (
+  id: string,
+  plane_id: string,
+  allocated_memory: int,
+  priority: string,
+  state: string,
+  client_unit: ?string,
+  client_pid: ?int
+)
+
+type ModelInfo (
+  id: string,
+  format: string,
+  path: string,
+  estimated_memory: int,
+  placement: string
+)
+
+method GetTopology() -> (
+  planes: []ComputePlane,
+  total_ram: int,
+  available_ram: int,
+  cpu_cores: int
+)
+
+method GetPressure() -> (
+  level: string,
+  cpu_some: float,
+  memory_some: float,
+  io_some: float
+)
+
+method AcquireLease(
+  priority: string,
+  memory_bytes: int,
+  plane: ?string,
+  unit: ?string,
+  pid: ?int
+) -> (
+  lease_id: string,
+  plane_id: string,
+  allocated_memory: int
+)
+
+method ReleaseLease(lease_id: string) -> ()
+method Yield(lease_id: string) -> ()
+method Freeze(lease_id: string) -> ()
+method Thaw(lease_id: string) -> ()
+method ListLeases() -> (leases: []LeaseInfo)
+method ListModels() -> (models: []ModelInfo)
+
+method RegisterModel(
+  id: string,
+  format: string,
+  path: string,
+  estimated_bytes: int
+) -> ()
+
+method StreamInference(
+  model: string,
+  prompt: string
+) -> (
+  chunk: string
+)
+
+error MethodNotFound (method: string)
+error InvalidParameter (parameter: string)
+error ResourceExhaustion (plane: string, requested: int, available: int)
+error PlaneNotFound (plane: string)
+error LeaseNotFound (lease_id: string)
+error ModelNotFound (model: string)</code></pre>
+
+        <!-- Sample Invocation -->
+        <h3 style="font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 700;">Command-Line Invocation</h3>
+        <div class="code-header">
+          <span>EXAMPLE VARLINKCTL CALL</span>
+          <button class="copy-btn" data-target="spec-cmd">Copy</button>
+        </div>
+        <pre><code id="spec-cmd">varlinkctl call unix:/run/syntrop/io.syntrop.Inference1 io.syntrop.Inference1.GetTopology '{}'</code></pre>
+
+        <h3 style="font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 700;">Sample Reply Payload</h3>
+        <div class="code-header">
+          <span>JSON RESPONSE</span>
+          <button class="copy-btn" data-target="spec-out">Copy</button>
+        </div>
+        <pre><code id="spec-out">{
+  "planes": [
+    {"available_memory": 15998242816, "id": "drm-renderD128", "is_triage_reserved": false, "kind": "drm_gpu", "name": "NVIDIA GeForce RTX 4090", "total_memory": 25769803776}
+  ],
+  "cpu_cores": 32,
+  "total_ram": 67108864000,
+  "available_ram": 48210948000
+}</code></pre>
+      </section>
+
+    </div>
+
+    <!-- Protocol Architecture & Comparison Section -->
+    <section style="margin-top: 3.5rem;">
+      <div class="page-header" style="margin-bottom: 1.5rem;">
+        <div class="category">IPC Rationale</div>
+        <h2>Why Varlink over D-Bus or gRPC?</h2>
+        <p>
+          Selecting an IPC mechanism for native operating system services demands strict guarantees: zero daemon runtime overhead, native file-descriptor passing, and human-readable tooling.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Evaluation Vector</th>
+              <th>Varlink (syntropd choice)</th>
+              <th>D-Bus (sd-bus)</th>
+              <th>gRPC / HTTP2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Idle Footprint</strong></td>
+              <td><span style="color: var(--teal); font-weight: 600;">0 MB</span> (Kernel AF_UNIX socket buffer)</td>
+              <td>Requires system bus daemon (`dbus-daemon` / `dbus-broker`)</td>
+              <td>High (HTTP/2 framing, TLS, connection pools)</td>
+            </tr>
+            <tr>
+              <td><strong>Framing Protocol</strong></td>
+              <td>Null-terminated UTF-8 JSON</td>
+              <td>Binary GVariant/D-Bus wire format</td>
+              <td>Binary Protocol Buffers</td>
+            </tr>
+            <tr>
+              <td><strong>Tooling &amp; Debugging</strong></td>
+              <td>Standard <code>varlinkctl</code> or <code>socat</code></td>
+              <td><code>busctl</code> or heavy desktop tools</td>
+              <td><code>grpcurl</code> or complex client stubs</td>
+            </tr>
+            <tr>
+              <td><strong>FD Passing (SCM_RIGHTS)</strong></td>
+              <td><span style="color: var(--teal); font-weight: 600;">Native</span> (Direct Unix socket ancillary data)</td>
+              <td>Supported via Unix FDs</td>
+              <td>Not natively supported over HTTP/2</td>
+            </tr>
+            <tr>
+              <td><strong>Peer Authentication</strong></td>
+              <td>Native <code>SO_PEERCRED</code> (PID, UID, GID)</td>
+              <td>Bus authorization cookies &amp; Polkit</td>
+              <td>mTLS or Bearer Tokens</td>
+            </tr>
+            <tr>
+              <td><strong>Introspection Standard</strong></td>
+              <td>Built-in <code>org.varlink.service</code></td>
+              <td>XML-based <code>org.freedesktop.DBus.Introspectable</code></td>
+              <td>gRPC Server Reflection Protocol</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">SEALED MEMFD ZERO-COPY IPC</div>
+        <p>
+          For neural tensor sharing between <code>inferenced</code> and <code>runtimed</code>, syntropd creates an anonymous in-memory file via <code>memfd_create(2)</code>, seals the file against mutation via <code>fcntl(F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE)</code>, and transfers ownership across the Varlink socket using <code>sendmsg(2)</code> with <code>SCM_RIGHTS</code>. Both processes map the tensor read-only with zero userspace memory copies.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="brand">
+          <svg viewBox="0 0 64 64" width="24" height="24">
+            <path d="M32 10 L50 20 L50 44 L32 54 L14 44 L14 20 Z" fill="none" stroke="#00d2b4" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="32" cy="32" r="5" fill="#00d2b4"/>
+          </svg>
+          <span>syntropd</span>
+        </div>
+        <p>Baking AI into systemd as native OS primitives, keeping PID 1 inviolable.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="specifications.html">Varlink Specs</a></li>
+          <li><a href="daemons.html">Subsystems</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="manual.html">Operator Manual</a></li>
+          <li><a href="quickstart.html">Quickstart</a></li>
+          <li><a href="https://github.com/syntropd" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li>Dual Apache-2.0 / MIT</li>
+          <li>ASD-STE100 Conformance</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 syntropd Project Contributors</span>
+      <span>Varlink Specification Release v0.1.0</span>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

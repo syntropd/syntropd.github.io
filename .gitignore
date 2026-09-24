@@ -1,0 +1,8 @@
+# syntropd.github.io .gitignore
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*~
+.idea/
+.vscode/
