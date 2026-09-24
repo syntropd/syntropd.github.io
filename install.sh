@@ -181,7 +181,7 @@ do_uninstall() {
     systemctl disable --now syntrop-sockets.target || true
   fi
 
-  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry")
+  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry" "sentry")
   for d in "${daemons[@]}"; do
     if systemctl is-active --quiet "${d}.socket" 2>/dev/null; then
       log_info "Stopping ${d}.socket..."
@@ -204,7 +204,9 @@ do_uninstall() {
         "${BIN_DIR}/modeld" \
         "${BIN_DIR}/contextd" \
         "${BIN_DIR}/toold" \
-        "${BIN_DIR}/runtimed"
+        "${BIN_DIR}/runtimed" \
+        "${BIN_DIR}/sentry" \
+        "${BIN_DIR}/systemd-sentry"
 
   log_ok "Uninstallation complete. (Model cache in ${MODEL_DIR} preserved)."
   exit 0
@@ -212,12 +214,22 @@ do_uninstall() {
 
 # ----------------- System Provisioning -----------------
 provision_system() {
-  log_info "Provisioning system group and directories..."
+  log_info "Provisioning system groups and directories..."
 
   # Create syntrop system group
   if ! getent group syntrop >/dev/null 2>&1; then
     groupadd -r syntrop
     log_ok "Created system group: syntrop"
+  fi
+
+  # Create sentry system user & group if missing
+  if ! getent group sentry >/dev/null 2>&1; then
+    groupadd -r sentry
+    log_ok "Created system group: sentry"
+  fi
+  if ! id -u sentry >/dev/null 2>&1; then
+    useradd -r -g sentry -d /var/lib/systemd-sentry -s /sbin/nologin -c "systemd-sentry supervisor" sentry 2>/dev/null || true
+    log_ok "Created system user: sentry"
   fi
 
   # Create directory hierarchy
@@ -226,6 +238,9 @@ provision_system() {
   mkdir -p "${MODEL_DIR}"
   mkdir -p "${ROLLBACK_DIR}"
   mkdir -p "${UNIT_DIR}"
+  mkdir -p /etc/systemd-sentry
+  mkdir -p /var/lib/systemd-sentry
+  mkdir -p /var/log/systemd-sentry
 
   chown root:syntrop "${MODEL_DIR}"
   chmod 0775 "${MODEL_DIR}"
@@ -244,7 +259,7 @@ provision_system() {
 install_binaries() {
   log_info "Installing syntropd binaries..."
 
-  local binaries=("syntropctl" "inferenced" "modeld" "contextd" "toold" "runtimed")
+  local binaries=("syntropctl" "inferenced" "modeld" "contextd" "toold" "runtimed" "sentry")
 
   # Option A: Local Build / Project tree
   if [[ -n "${LOCAL_SRC}" && -d "${LOCAL_SRC}" ]]; then
@@ -270,6 +285,10 @@ install_binaries() {
         fi
       fi
     done
+    if [[ -f "${BIN_DIR}/sentry" && ! -f "${BIN_DIR}/systemd-sentry" ]]; then
+      ln -sf "${BIN_DIR}/sentry" "${BIN_DIR}/systemd-sentry"
+      log_ok "Symlinked ${BIN_DIR}/systemd-sentry -> ${BIN_DIR}/sentry"
+    fi
     return
   fi
 
@@ -300,6 +319,10 @@ EOF
         chmod 0755 "${BIN_DIR}/${b}"
       fi
     done
+    if [[ -f "${BIN_DIR}/sentry" && ! -f "${BIN_DIR}/systemd-sentry" ]]; then
+      ln -sf "${BIN_DIR}/sentry" "${BIN_DIR}/systemd-sentry"
+      log_ok "Symlinked ${BIN_DIR}/systemd-sentry -> ${BIN_DIR}/sentry"
+    fi
     return
   fi
 
@@ -332,6 +355,10 @@ EOF
       chmod 0755 "${BIN_DIR}/${b}"
     fi
   done
+  if [[ -f "${BIN_DIR}/sentry" && ! -f "${BIN_DIR}/systemd-sentry" ]]; then
+    ln -sf "${BIN_DIR}/sentry" "${BIN_DIR}/systemd-sentry"
+    log_ok "Symlinked ${BIN_DIR}/systemd-sentry -> ${BIN_DIR}/sentry"
+  fi
 }
 
 # ----------------- Systemd Units Installation -----------------
@@ -530,19 +557,74 @@ MemoryDenyWriteExecute=yes
 RestrictAddressFamilies=AF_UNIX
 EOF
 
-  # 6. syntrop-sockets.target (Unified activation umbrella)
+  # 6. systemd-sentry.socket & service
+  cat <<'EOF' > "${UNIT_DIR}/systemd-sentry.socket"
+[Unit]
+Description=systemd-sentry IPC Socket
+Documentation=https://syntropd.github.io/daemons.html#sentry
+PartOf=systemd-sentry.service
+
+[Socket]
+ListenStream=/run/systemd-sentry/sentry.sock
+SocketUser=sentry
+SocketGroup=sentry
+SocketMode=0660
+DirectoryMode=0755
+
+[Install]
+WantedBy=sockets.target
+Alias=sentry.socket
+EOF
+
+  cat <<EOF > "${UNIT_DIR}/systemd-sentry.service"
+[Unit]
+Description=systemd-sentry Autonomous Supervisor
+Documentation=https://syntropd.github.io/daemons.html#sentry
+After=dbus.service systemd-journald.service
+Wants=dbus.service systemd-journald.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=15s
+Restart=always
+RestartSec=3s
+Sockets=systemd-sentry.socket
+ExecStart=${BIN_DIR}/systemd-sentry daemon --config /etc/systemd-sentry/config.toml
+ExecReload=/bin/kill -HUP \$MAINPID
+User=sentry
+Group=sentry
+SupplementaryGroups=systemd-journal
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_KILL
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=false
+PrivateTmp=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+ReadWritePaths=/var/lib/systemd-sentry /var/log/systemd-sentry /run/systemd-sentry
+
+[Install]
+WantedBy=multi-user.target
+Alias=sentry.service
+EOF
+
+  # 7. syntrop-sockets.target (Unified activation umbrella)
   cat <<'EOF' > "${UNIT_DIR}/syntrop-sockets.target"
 [Unit]
 Description=syntropd Unified Socket Activation Umbrella
 Documentation=https://syntropd.github.io/architecture.html#socket
-Wants=inferenced.socket modeld.socket contextd.socket toold.socket runtimed.socket
+Wants=inferenced.socket modeld.socket contextd.socket toold.socket runtimed.socket systemd-sentry.socket
 After=network.target
 
 [Install]
 WantedBy=sockets.target multi-user.target
 EOF
 
-  # 7. syntrop-triage@.service (OnFailure template)
+  # 8. syntrop-triage@.service (OnFailure template)
   cat <<EOF > "${UNIT_DIR}/syntrop-triage@.service"
 [Unit]
 Description=syntropd Autonomous Triage for Failed Unit %I
@@ -556,7 +638,7 @@ StandardOutput=journal
 StandardError=journal
 EOF
 
-  log_ok "All 7 systemd unit specifications registered in ${UNIT_DIR}."
+  log_ok "All 8 systemd unit specifications registered in ${UNIT_DIR}."
 }
 
 # ----------------- Socket Activation & Verification -----------------
@@ -571,7 +653,7 @@ activate_systemd() {
     log_info "Verifying socket listener states..."
     sleep 0.5
     local sockets_ok=true
-    local check_sockets=("inferenced.socket" "modeld.socket" "contextd.socket" "toold.socket" "runtimed.socket")
+    local check_sockets=("inferenced.socket" "modeld.socket" "contextd.socket" "toold.socket" "runtimed.socket" "systemd-sentry.socket")
     for s in "${check_sockets[@]}"; do
       if systemctl is-active --quiet "${s}"; then
         log_ok "Socket listener active: ${s}"
