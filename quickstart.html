@@ -160,22 +160,23 @@ sudo apt-get update &amp;&amp; sudo apt-get install -y syntropd syntropctl</code
       <!-- Tab 3: Cargo / crates.io -->
       <h3 style="font-size: 1.1rem; margin-top: 2rem; color: var(--teal);">3. Rust Toolchain / crates.io</h3>
       <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
-        Install the control CLI, daemons, and autonomous supervisor directly via <code>cargo install</code>:
+        Install the entire suite via the umbrella meta-crate, or install daemons individually via <code>cargo install</code>:
       </p>
       <div class="code-header">
         <span>Terminal</span>
         <button class="copy-btn">Copy</button>
       </div>
-      <pre><code># Install operator CLI
-cargo install syntropctl
+      <pre><code># Option A: Install full suite via umbrella meta-crate
+cargo install syntropd
 
-# Install daemons &amp; supervisor
-cargo install syntropd-sentry
-cargo install syntropd-inferenced
-cargo install syntropd-modeld
-cargo install syntropd-contextd
-cargo install syntropd-toold
-cargo install syntropd-runtimed</code></pre>
+# Option B: Install operator CLI and daemons individually
+cargo install syntropctl
+cargo install syntrop-sentry
+cargo install syntrop-inferenced
+cargo install syntrop-modeld
+cargo install syntrop-contextd
+cargo install syntrop-toold
+cargo install syntrop-runtimed</code></pre>
     </section>
 
     <!-- Activation Steps -->

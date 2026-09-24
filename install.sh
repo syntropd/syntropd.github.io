@@ -12,6 +12,12 @@
 #   curl -fsSL https://syntropd.github.io/install.sh | sudo bash
 #   sudo ./install.sh [OPTIONS]
 #
+# Alternative (Cargo / crates.io):
+#   cargo install syntropd
+#   # Or individually:
+#   cargo install syntropctl syntrop-sentry syntrop-inferenced \
+#                 syntrop-modeld syntrop-contextd syntrop-toold syntrop-runtimed
+#
 # Options:
 #   --prefix <PATH>     Installation prefix for binaries (default: /usr/local)
 #   --uninstall         Disable and remove syntropd daemons and systemd units
@@ -77,7 +83,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h|--help)
-      sed -n '2,20p' "$0" | sed 's/^# //'
+      sed -n '2,28p' "$0" | sed 's/^# //'
       exit 0
       ;;
     *)
@@ -697,6 +703,11 @@ main() {
   echo -e "  ${CYAN}$ syntropctl status${RESET}    # Verify socket health & latency"
   echo -e "  ${CYAN}$ syntropctl devices${RESET}   # Inspect compute plane accelerators"
   echo -e "  ${CYAN}$ syntropctl models${RESET}    # Inspect CAS model store"
+  echo -e ""
+  echo -e "To install or rebuild the daemon suite via Cargo / crates.io:"
+  echo -e "  ${CYAN}$ cargo install syntropd${RESET}"
+  echo -e "  # Or individually: cargo install syntropctl syntrop-sentry syntrop-inferenced \\"
+  echo -e "  #                       syntrop-modeld syntrop-contextd syntrop-toold syntrop-runtimed"
   echo -e ""
   echo -e "To configure auto-triage on any systemd service, add:"
   echo -e "  ${YELLOW}[Unit]${RESET}"
