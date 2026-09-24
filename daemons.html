@@ -276,7 +276,74 @@ ReadOnlyPaths=/usr</code></pre>
         libm.so.6 => /lib64/libm.so.6 (0x00007f59d4c70000)
         libc.so.6 => /lib64/libc.so.6 (0x00007f59d4a8e000)
         /lib64/ld-linux-x86-64.so.2 (0x00007f59d4d9b000)
-# (Notice: zero libstdc++, zero libgcc_s, zero openmp, zero cuda runtime dynamic linkage)</code></pre>
+    </article>
+
+    <!-- Daemon 6: sentry -->
+    <article id="sentry" class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>systemd-sentry — Autonomous Zero-Trust Supervisor</h2>
+          <p>Enclave Socket: <code>/run/syntrop/sentry.sock</code> • Interface: <code>io.syntrop.Sentry1</code></p>
+        </div>
+        <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(244,63,94,0.3);">AUTONOMOUS SUPERVISOR</span>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
+        <code>systemd-sentry</code> is the proactive supervisor and brain of the autonomous self-healing loop. While <code>inferenced</code>, <code>modeld</code>, <code>contextd</code>, <code>toold</code>, and <code>runtimed</code> provide the passive OS capabilities and tools, <code>sentry</code> continuously observes systemd event loops via D-Bus, detects failures in real time, and drives the sub-200ms emergency triage pipeline.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Responsibility</th>
+              <th>Technical Mechanism</th>
+              <th>Failure Safeguards</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Failure Interception</strong></td>
+              <td>Subscribes to <code>org.freedesktop.systemd1.Manager.JobRemoved</code> signals via native <code>sd-bus</code> event loop. Responds within 2ms.</td>
+              <td>Bounded non-blocking signal buffers</td>
+            </tr>
+            <tr>
+              <td><strong>Triage Pipeline Coordination</strong></td>
+              <td>Calls <code>contextd</code> for chronology, acquires <code>EmergencyTriage</code> leases from <code>inferenced</code>, dispatches prompt to <code>runtimed</code>, and executes via <code>toold</code>.</td>
+              <td>Hard timeout budgets per phase</td>
+            </tr>
+            <tr>
+              <td><strong>Circuit Breaking</strong></td>
+              <td>Enforces deterministic cooldown windows and exponential backoffs if a flapping service fails repeatedly.</td>
+              <td>Never restarts units indefinitely</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-header">
+        <span>systemd/systemd-sentry.service</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[Unit]
+Description=syntropd Autonomous Zero-Trust Supervisor
+Documentation=https://syntropd.github.io/daemons.html#sentry
+After=network.target dbus.socket syntrop-sockets.target
+Requires=syntrop-sockets.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/systemd-sentry
+Restart=always
+RestartSec=3s
+WatchdogSec=10s
+
+# Hardened sandboxing
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
     </article>
 
   </main>
