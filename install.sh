@@ -54,7 +54,6 @@ log_info()   { echo -e "${CYAN}[INFO]${RESET} $*"; }
 log_ok()     { echo -e "${GREEN}[OK]${RESET} $*"; }
 log_warn()   { echo -e "${YELLOW}[WARN]${RESET} $*"; }
 log_error()  { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
-log_prompt() { echo -e "${CYAN}${BOLD}[PROMPT]${RESET} $*"; }
 log_bold()   { echo -e "${BOLD}$*${RESET}"; }
 
 # ----------------- CLI Argument Parsing -----------------
@@ -1028,48 +1027,13 @@ activate_subsystem() {
   echo "To diagnose a failed unit root-cause:"
   echo "  syntropctl explain <unit>"
   echo ""
-  echo "To configure AI providers or download Gemma 4 models anytime:"
-  echo "  sudo routerctl setup"
   echo ""
-
-  # Interactive prompt to run routerctl setup
-  local is_interactive=false
-  if [[ -t 0 ]]; then
-    is_interactive=true
-  elif [[ -t 1 && -c /dev/tty ]]; then
-    is_interactive=true
-  fi
-
-  if [[ "${is_interactive}" == "true" && "${DRY_RUN}" != "true" ]]; then
-    local setup_resp=""
-    echo ""
-    log_prompt "Configure AI providers and Gemma 4 models now with 'routerctl setup'? [y/N]"
-    echo -n "         Press 'y' to start setup, or press Enter (auto-skipping in 15s): "
-    if [[ -t 0 ]]; then
-      read -t 15 -r setup_resp 2>/dev/null || setup_resp="n"
-    elif [[ -c /dev/tty ]]; then
-      read -t 15 -r setup_resp < /dev/tty 2>/dev/null || setup_resp="n"
-    fi
-    echo ""
-    setup_resp="${setup_resp:-n}"
-    if [[ "${setup_resp}" =~ ^[Yy]$ ]]; then
-      if [[ -x "${BIN_DIR}/routerctl" ]]; then
-        if [[ ! -t 0 && -c /dev/tty ]]; then
-          "${BIN_DIR}/routerctl" setup < /dev/tty || true
-        else
-          "${BIN_DIR}/routerctl" setup || true
-        fi
-      elif command -v routerctl >/dev/null 2>&1; then
-        if [[ ! -t 0 && -c /dev/tty ]]; then
-          routerctl setup < /dev/tty || true
-        else
-          routerctl setup || true
-        fi
-      fi
-    else
-      log_info "Skipping setup. You can run 'sudo routerctl setup' anytime."
-    fi
-  fi
+  log_bold "------------------------------------------------------------"
+  log_bold " NEXT STEP (required): set up your AI provider"
+  log_bold "------------------------------------------------------------"
+  echo -e "  Run this command now: ${BOLD}sudo routerctl setup${RESET}"
+  echo "  It walks you through API keys and models."
+  echo ""
 }
 
 # ----------------- Main Execution -----------------
