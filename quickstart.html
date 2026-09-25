@@ -176,7 +176,8 @@ cargo install syntrop-inferenced
 cargo install syntrop-modeld
 cargo install syntrop-contextd
 cargo install syntrop-toold
-cargo install syntrop-runtimed</code></pre>
+cargo install syntrop-runtimed
+cargo install syntrop-routerd</code></pre>
     </section>
 
     <!-- Activation Steps -->
@@ -203,20 +204,24 @@ cargo install syntrop-runtimed</code></pre>
       <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 2: Inspect Socket Health</h3>
         <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
-          Verify that all 5 Varlink endpoints are in the <code>listening</code> state:
+          Verify that all Varlink and wire reverse-proxy endpoints are in the <code>listening</code> state:
         </p>
         <div class="code-header">
-          <span>$ systemctl list-sockets "syntrop-*"</span>
+          <span>$ systemctl list-sockets "syntrop-*" "routerd*" "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*"</span>
           <button class="copy-btn">Copy</button>
         </div>
         <pre><code>LISTEN                                 UNIT                     ACTIVATES
-/run/syntrop/io.syntrop.Context1       contextd.socket          contextd.service
+127.0.0.1:32768                        routerd.socket           routerd.service
+[::1]:32768                            routerd.socket           routerd.service
+/run/syntrop/router.sock               routerd.socket           routerd.service
+/run/syntrop/io.syntrop.Router1        routerd.socket           routerd.service
 /run/syntrop/io.syntrop.Inference1     inferenced.socket        inferenced.service
+/run/syntrop/gateway.sock              inferenced.socket        inferenced.service
 /run/syntrop/io.syntrop.Model1         modeld.socket            modeld.service
-/run/syntrop/io.syntrop.Runtime1       runtimed.socket          runtimed.service
+/run/syntrop/io.syntrop.Context1       contextd.socket          contextd.service
 /run/syntrop/io.syntrop.Tool1          toold.socket             toold.service
-
-5 sockets listed.</code></pre>
+/run/syntrop/io.syntrop.Runtime1       runtimed.socket          runtimed.service
+/run/systemd-sentry/sentry.sock        systemd-sentry.socket    systemd-sentry.service</code></pre>
       </div>
 
       <div style="margin-bottom: 1.5rem;">
@@ -234,11 +239,12 @@ modeld       /run/syntrop/io.syntrop.Model1          ACTIVE    0.32ms   io.syntr
 contextd     /run/syntrop/io.syntrop.Context1        ACTIVE    0.28ms   io.syntrop.Context1, org.varlink.service
 toold        /run/syntrop/io.syntrop.Tool1           ACTIVE    0.35ms   io.syntrop.Tool1, org.varlink.service
 runtimed     /run/syntrop/io.syntrop.Runtime1        STANDBY   0.15ms   io.syntrop.Runtime1, org.varlink.service
+routerd      /run/syntrop/io.syntrop.Router1         ACTIVE    0.38ms   io.syntrop.Router1, org.varlink.service
 
-System Status: OPERATIONAL (All 5 sockets listening; 0 MB idle RAM footprint)</code></pre>
+System Status: OPERATIONAL (All sockets listening; 0 MB idle RAM footprint)</code></pre>
       </div>
 
-      <div>
+      <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 4: Verify Compute Plane Acceleration</h3>
         <div class="code-header">
           <span>$ syntropctl devices</span>
@@ -249,6 +255,25 @@ drm-renderD128     DRM_GPU    NVIDIA GeForce RTX 4090     24.00 GiB     0.00 GiB
 cpu-amx-0          CPU_AMX    Intel Xeon Platinum 8480+   64.00 GiB     0.00 GiB    Normal (0.0% some)
 
 Hardware acceleration is operational.</code></pre>
+      </div>
+
+      <div>
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 5: Verify Wire Proxy Ingress &amp; LLM Providers</h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+          Verify <code>routerd</code> wire ingress on port 32768 using standard <code>curl</code> and test upstream provider health:
+        </p>
+        <div class="code-header">
+          <span>Terminal</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <pre><code># 1. Query available models via HTTP wire proxy ingress
+curl http://127.0.0.1:32768/v1/models
+
+# 2. Inspect configured routing providers
+routerctl providers list
+
+# 3. Test latency and connectivity to a specific provider
+routerctl test local-runtimed</code></pre>
       </div>
     </section>
 

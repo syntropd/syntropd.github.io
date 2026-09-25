@@ -122,6 +122,15 @@ const ARCH_NODE_DATA = {
     privilege: 'Type=notify, Restart=always, WatchdogSec=10s',
     desc: 'Autonomous crash supervisor that intercepts unit failure signals from systemd PID 1 via D-Bus within 2ms. Orchestrates context gathering, emergency inference lease acquisition, and safe self-healing actions.',
     methods: ['TriageUnit', 'GetIncidentReport', 'ResetCircuitBreaker']
+  },
+  'routerd': {
+    title: 'routerd.service (Multi-Provider LLM Router & Reverse Proxy)',
+    socket: '/run/syntrop/io.syntrop.Router1 & 127.0.0.1:32768',
+    interface: 'io.syntrop.Router1',
+    kernel: 'Dual-stack TCP (32768), Unix domain sockets, kernel PSI (/proc/pressure/memory)',
+    privilege: 'Slice=ai.slice, MemoryHigh=24M, MemoryMax=32M, ProtectSystem=strict, NoNewPrivileges=yes',
+    desc: 'Intelligent multi-provider LLM reverse proxy and dynamic scoring router. Mediates between client workloads (sentry triage, user requests) and compute destinations (local runtimed/inferenced, LAN Ollama clusters, and cloud LLM APIs). Incorporates kernel PSI pressure feedback to offload execution when host memory spikes.',
+    methods: ['GetStatus', 'ListProviders', 'ListModels', 'RouteRequest', 'TestProvider']
   }
 };
 
@@ -549,6 +558,80 @@ error InvalidParameter(parameter: string)`,
     exampleOut: `{\n  "status": "loaded",\n  "model": {\n    "architecture": "qwen2",\n    "compute_backend": "cuda",\n    "context_window": 32768,\n    "memory_bytes": 4819000000,\n    "name": "qwen2.5-coder-7b",\n    "parameter_count": 7615000000\n  }\n}`
   },
 
+  'routerd': {
+    name: 'io.syntrop.Router1',
+    socket: '/run/syntrop/io.syntrop.Router1',
+    description: 'Intelligent model routing, multi-provider scoring, latency metrics, and wire protocol reverse proxying.',
+    idl: `interface io.syntrop.Router1
+
+type ProviderInfo (
+  id: string,
+  name: string,
+  kind: string,
+  base_url: string,
+  tier: string,
+  is_healthy: bool,
+  weight: float,
+  models: []string,
+  total_requests: int,
+  total_errors: int,
+  last_latency_ms: float
+)
+
+type ScoredCandidateInfo (
+  provider_id: string,
+  model_name: string,
+  total_score: float,
+  speed_score: float,
+  cost_score: float,
+  capability_score: float,
+  estimated_cost: float,
+  reason: string
+)
+
+method GetStatus() -> (
+  status: string,
+  version: string,
+  uptime_seconds: int,
+  total_requests: int,
+  active_requests: int,
+  providers_count: int,
+  healthy_providers_count: int,
+  psi_level: string,
+  psi_memory_some: float,
+  rss_bytes: int,
+  rss_mb: float
+)
+
+method ListProviders() -> (
+  providers: []ProviderInfo
+)
+
+method ListModels() -> (
+  models: []string
+)
+
+method RouteRequest(
+  model: ?string,
+  tier: ?string,
+  estimated_tokens: ?int,
+  require_stream: ?bool
+) -> (
+  candidates: []ScoredCandidateInfo
+)
+
+method TestProvider(
+  provider_id: string
+) -> (
+  provider_id: string,
+  healthy: bool,
+  latency_ms: float,
+  error: ?string
+)`,
+    exampleCmd: `varlinkctl call unix:/run/syntrop/io.syntrop.Router1 io.syntrop.Router1.GetStatus '{}'`,
+    exampleOut: `{\n  "active_requests": 0,\n  "healthy_providers_count": 3,\n  "providers_count": 3,\n  "psi_level": "normal",\n  "psi_memory_some": 0.0,\n  "rss_mb": 9.12,\n  "status": "operational",\n  "total_requests": 428,\n  "uptime_seconds": 8040,\n  "version": "0.3.0"\n}`
+  },
+
   'service': {
     name: 'org.varlink.service',
     socket: '/run/syntrop/io.syntrop.*',
@@ -605,6 +688,7 @@ function initVarlinkBrowser() {
     '#context': 'contextd',
     '#tool': 'toold',
     '#runtime': 'runtimed',
+    '#router': 'routerd',
     '#service': 'service'
   };
 

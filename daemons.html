@@ -13,7 +13,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-banner">
-    <span><span class="badge">DAEMON CATALOG</span> 6 Modular Components • Pure Rust</span>
+    <span><span class="badge">DAEMON CATALOG</span> 7 Modular Components • Pure Rust</span>
     <span>•</span>
     <span>Zero dynamic C libraries • Hardened systemd drop-ins</span>
   </div>
@@ -344,6 +344,153 @@ ProtectHome=yes
 ProtectKernelTunables=yes
 MemoryDenyWriteExecute=yes
 RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
+    </article>
+
+    <!-- Daemon 7: routerd -->
+    <article id="routerd" class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>routerd — Multi-Provider LLM Router &amp; Telemetry Reverse Proxy</h2>
+          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Router1</code> • Wire Ingress: <code>127.0.0.1:32768</code> &amp; <code>/run/syntrop/router.sock</code></p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(0,210,180,0.3);">WIRE ROUTER</span>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
+        <code>routerd</code> provides high-performance, intelligent model routing and reverse proxying across heterogeneous backends (local <code>runtimed</code>/<code>inferenced</code>, LAN Ollama instances, and external cloud LLM APIs). It incorporates real-time kernel Pressure Stall Information (PSI) and VRAM monitoring to prevent host memory starvation by seamlessly spilling compute loads to remote tiers.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Architecture Vector</th>
+              <th>Technical Implementation</th>
+              <th>Security &amp; Sandboxing</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Prioritization Dimensions</strong></td>
+              <td>Multi-criteria heuristic scoring factoring cost, throughput (tok/sec), context window capacity, and difficulty tiers (<code>fast</code> vs <code>hard</code>). Selects optimal provider deterministically.</td>
+              <td><code>Slice=ai.slice</code></td>
+            </tr>
+            <tr>
+              <td><strong>Telemetry Loop</strong></td>
+              <td>Actively samples <code>/proc/pressure/memory</code> and GPU VRAM leases. When memory pressure exceeds threshold (PSI &gt; 25%), local execution is throttled and offloaded to LAN/Cloud providers.</td>
+              <td><code>MemoryHigh=24M</code><br><code>MemoryMax=32M</code></td>
+            </tr>
+            <tr>
+              <td><strong>Zero Context Contamination</strong></td>
+              <td>Strict request context isolation. Internal systemd diagnostic prompts, triage tokens, and user-space LLM traffic traverse isolated ring channels with zero shared session state.</td>
+              <td><code>ProtectSystem=strict</code><br><code>NoNewPrivileges=yes</code></td>
+            </tr>
+            <tr>
+              <td><strong>Dual-Stack Wire Ingress</strong></td>
+              <td>Listens on dual-stack TCP <code>127.0.0.1:32768</code> / <code>[::1]:32768</code> and local Unix domain socket <code>/run/syntrop/router.sock</code> for standard OpenAI/Ollama API compatibility.</td>
+              <td><code>RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-size: 1.05rem; margin: 1.25rem 0 0.5rem; color: var(--teal);">Operator CLI: <code>routerctl</code> Usage</h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+        Operators and automation scripts manage <code>routerd</code> via <code>routerctl</code>:
+      </p>
+
+      <div class="code-header">
+        <span>$ routerctl status</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>● routerd.service - Intelligent Model Router and Wire Protocol Gateway
+     Status: OPERATIONAL (Uptime: 2h 14m)
+     Wire Ingress: 127.0.0.1:32768, /run/syntrop/router.sock
+     Varlink IPC:  /run/syntrop/io.syntrop.Router1
+     Memory RSS:   9.12 MiB (MemoryHigh: 24M, MemoryMax: 32M)
+     Kernel PSI:   Memory 0.0% some (normal)
+     Providers:    3 configured, 3 healthy (local-candle, lan-ollama, cloud-fallback)
+     Total Reqs:   428 served (0 routing errors)</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
+        <span>$ routerctl providers list</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>PROVIDER ID       KIND     TIER    STATUS    WEIGHT   LATENCY    MODELS
+local-runtimed    native   fast    HEALTHY   1.0      12.4ms     qwen2.5-coder-7b
+lan-ollama        ollama   fast    HEALTHY   0.8      48.2ms     deepseek-r1:8b, llama3.2:3b
+cloud-openai      openai   hard    HEALTHY   0.5      245.0ms    gpt-4o, o3-mini</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
+        <span>$ routerctl test local-runtimed</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[TEST] Probing provider 'local-runtimed' at unix:/run/syntrop/io.syntrop.Runtime1...
+[OK] Provider response received in 14.2ms.
+[OK] Health check passed: HTTP 200 OK (models: 1, state: ready)</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
+        <span>$ routerctl models</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>AVAILABLE ROUTED MODELS:
+  - router:fast (auto-routed to lowest-latency fast tier provider)
+  - router:hard (auto-routed to high-capability reasoning tier provider)
+  - qwen2.5-coder-7b (local-runtimed)
+  - deepseek-r1:8b (lan-ollama)
+  - gpt-4o (cloud-openai)</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
+        <span>$ routerctl route --model router:fast --tokens 2048</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>ROUTING DECISION CANDIDATES:
+  1. local-runtimed / qwen2.5-coder-7b  [SCORE: 96.4] Speed: 98.0  Cost: 100.0  Cap: 90.0  (Selected)
+  2. lan-ollama / deepseek-r1:8b        [SCORE: 81.2] Speed: 72.0  Cost: 100.0  Cap: 75.0
+  3. cloud-openai / gpt-4o              [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
+
+      <div class="code-header" style="margin-top: 1.25rem;">
+        <span>systemd/routerd.service</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[Unit]
+Description=Intelligent Model Router and Wire Protocol Gateway
+Documentation=https://github.com/syntropd/routerd
+After=network.target local-fs.target
+Requires=routerd.socket
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/routerd --config /etc/syntrop/routerd.toml
+Restart=on-failure
+RestartSec=3s
+WatchdogSec=30s
+Slice=ai.slice
+
+# Memory constraints
+MemoryHigh=24M
+MemoryMax=32M
+
+# Security & Sandboxing
+User=syntrop
+Group=syntrop
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+# cgroup v2 & systemd-oomd Protection
+ManagedOOMPreference=avoid
+OOMScoreAdjust=-800
+OOMPolicy=stop</code></pre>
     </article>
 
   </main>

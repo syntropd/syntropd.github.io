@@ -13,11 +13,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-banner">
-    <span><span class="badge">RFC / SPECIFICATION</span> Native Varlink IPC &amp; systemd socket activation</span>
-    <span>•</span>
-    <span>Zero dynamic C dependencies</span>
-    <span>•</span>
-    <span>0 MB idle RAM footprint</span>
+    <span><span class="badge">v0.3.0</span> 7 Modular Components • Pure Rust • Port 32768 Ingress • Zero dynamic C libraries</span>
   </div>
 
   <!-- Header & Navigation -->
@@ -249,6 +245,30 @@
           </div>
         </div>
 
+        <!-- routerd -->
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">routerd</div>
+              <div class="daemon-socket">/run/syntrop/io.syntrop.Router1 &amp; 127.0.0.1:32768</div>
+            </div>
+            <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">ROUTER</span>
+          </div>
+          <p class="daemon-desc">
+            Multi-provider LLM reverse proxy and dynamic scoring router. Distributes inference across local runtimed/inferenced instances, LAN Ollama clusters, and cloud providers with kernel PSI offloading and zero context contamination.
+          </p>
+          <ul class="daemon-features">
+            <li>Dynamic candidate scoring (cost, throughput, context, tiers)</li>
+            <li>Kernel PSI telemetry loop &amp; VRAM pressure offloading</li>
+            <li>Dual-stack TCP ingress (port 32768) &amp; /run/syntrop/router.sock</li>
+            <li>Native Varlink IPC control socket (io.syntrop.Router1)</li>
+          </ul>
+          <div class="daemon-footer">
+            <span style="color: var(--text-dim);">io.syntrop.Router1</span>
+            <a href="daemons.html#routerd">Details →</a>
+          </div>
+        </div>
+
         <!-- syntropctl -->
         <div class="daemon-card">
           <div class="daemon-top">
@@ -293,8 +313,9 @@ modeld       /run/syntrop/io.syntrop.Model1          ACTIVE    0.32ms   io.syntr
 contextd     /run/syntrop/io.syntrop.Context1        ACTIVE    0.28ms   io.syntrop.Context1, org.varlink.service
 toold        /run/syntrop/io.syntrop.Tool1           ACTIVE    0.35ms   io.syntrop.Tool1, org.varlink.service
 runtimed     /run/syntrop/io.syntrop.Runtime1        STANDBY   0.15ms   io.syntrop.Runtime1, org.varlink.service
+routerd      /run/syntrop/io.syntrop.Router1         ACTIVE    0.38ms   io.syntrop.Router1, org.varlink.service
 
-System Status: OPERATIONAL (All 5 sockets listening; 0 MB idle RAM footprint)</code></pre>
+System Status: OPERATIONAL (All sockets listening; 0 MB idle RAM footprint)</code></pre>
 
       <div class="code-header" style="margin-top: 1.5rem;">
         <span>$ syntropctl explain payment-service.service</span>

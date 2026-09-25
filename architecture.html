@@ -107,106 +107,142 @@
           </g>
 
           <!-- Layer 2 Daemons -->
+          <!-- routerd (Mediating Ingress & Router) -->
+          <g class="arch-node" data-node="routerd" transform="translate(24, 175)">
+            <rect width="142" height="142" rx="6" fill="#162032" stroke="#00d2b4" stroke-width="1.5"/>
+            <circle cx="20" cy="22" r="5" fill="#00d2b4"/>
+            <text x="32" y="26" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700">routerd</text>
+            <text x="12" y="47" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="9">io.syntrop.Router1</text>
+            <text x="12" y="60" fill="#a855f7" font-family="ui-monospace, monospace" font-size="8.5">127.0.0.1:32768</text>
+            <line x1="12" y1="68" x2="130" y2="68" stroke="#223249"/>
+            <text x="12" y="85" fill="#94a3b8" font-family="sans-serif" font-size="9">• Multi-Provider Proxy</text>
+            <text x="12" y="100" fill="#94a3b8" font-family="sans-serif" font-size="9">• Dynamic Scoring</text>
+            <text x="12" y="115" fill="#94a3b8" font-family="sans-serif" font-size="9">• PSI Memory Spilling</text>
+            <text x="12" y="130" fill="#00d2b4" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600">⇄ Cloud/LAN/Local</text>
+          </g>
+
           <!-- inferenced -->
-          <g class="arch-node" data-node="inferenced" transform="translate(45, 180)">
-            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
-            <circle cx="25" cy="25" r="5" fill="#00d2b4"/>
-            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">inferenced</text>
-            <text x="18" y="55" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Inference1</text>
-            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
-            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• DRM GPU Discovery</text>
-            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Two-Tier Leases</text>
-            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• PSI Preemption</text>
+          <g class="arch-node" data-node="inferenced" transform="translate(178, 175)">
+            <rect width="142" height="142" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="20" cy="22" r="5" fill="#00d2b4"/>
+            <text x="32" y="26" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700">inferenced</text>
+            <text x="12" y="47" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="9">io.syntrop.Inference1</text>
+            <text x="12" y="60" fill="#64748b" font-family="ui-monospace, monospace" font-size="8.5">gateway.sock (local)</text>
+            <line x1="12" y1="68" x2="130" y2="68" stroke="#223249"/>
+            <text x="12" y="85" fill="#94a3b8" font-family="sans-serif" font-size="9">• DRM Accelerator</text>
+            <text x="12" y="100" fill="#94a3b8" font-family="sans-serif" font-size="9">• Two-Tier Leases</text>
+            <text x="12" y="115" fill="#94a3b8" font-family="sans-serif" font-size="9">• PSI Preemption</text>
+            <text x="12" y="130" fill="#94a3b8" font-family="sans-serif" font-size="9">• Zero-Copy Memfd</text>
           </g>
 
           <!-- modeld -->
-          <g class="arch-node" data-node="modeld" transform="translate(225, 180)">
-            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
-            <circle cx="25" cy="25" r="5" fill="#a855f7"/>
-            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">modeld</text>
-            <text x="18" y="55" fill="#a855f7" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Model1</text>
-            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
-            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• SHA-256 CAS</text>
-            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Reflink Dedup</text>
-            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Triage Pinning</text>
+          <g class="arch-node" data-node="modeld" transform="translate(332, 175)">
+            <rect width="142" height="142" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="20" cy="22" r="5" fill="#a855f7"/>
+            <text x="32" y="26" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700">modeld</text>
+            <text x="12" y="47" fill="#a855f7" font-family="ui-monospace, monospace" font-size="9">io.syntrop.Model1</text>
+            <text x="12" y="60" fill="#64748b" font-family="ui-monospace, monospace" font-size="8.5">/var/lib/models</text>
+            <line x1="12" y1="68" x2="130" y2="68" stroke="#223249"/>
+            <text x="12" y="85" fill="#94a3b8" font-family="sans-serif" font-size="9">• SHA-256 CAS</text>
+            <text x="12" y="100" fill="#94a3b8" font-family="sans-serif" font-size="9">• Reflink Dedup</text>
+            <text x="12" y="115" fill="#94a3b8" font-family="sans-serif" font-size="9">• Triage Pinning</text>
+            <text x="12" y="130" fill="#94a3b8" font-family="sans-serif" font-size="9">• LRU Storage Quota</text>
           </g>
 
           <!-- contextd -->
-          <g class="arch-node" data-node="contextd" transform="translate(405, 180)">
-            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
-            <circle cx="25" cy="25" r="5" fill="#38bdf8"/>
-            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">contextd</text>
-            <text x="18" y="55" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Context1</text>
-            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
-            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• Journal Slicing</text>
-            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Config Diffs</text>
-            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Event Chronology</text>
+          <g class="arch-node" data-node="contextd" transform="translate(486, 175)">
+            <rect width="142" height="142" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="20" cy="22" r="5" fill="#38bdf8"/>
+            <text x="32" y="26" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700">contextd</text>
+            <text x="12" y="47" fill="#38bdf8" font-family="ui-monospace, monospace" font-size="9">io.syntrop.Context1</text>
+            <text x="12" y="60" fill="#64748b" font-family="ui-monospace, monospace" font-size="8.5">/run/syntrop</text>
+            <line x1="12" y1="68" x2="130" y2="68" stroke="#223249"/>
+            <text x="12" y="85" fill="#94a3b8" font-family="sans-serif" font-size="9">• Journal Slicing</text>
+            <text x="12" y="100" fill="#94a3b8" font-family="sans-serif" font-size="9">• Config Diffs</text>
+            <text x="12" y="115" fill="#94a3b8" font-family="sans-serif" font-size="9">• Event Chronology</text>
+            <text x="12" y="130" fill="#94a3b8" font-family="sans-serif" font-size="9">• Ring Buffer (10k)</text>
           </g>
 
           <!-- toold -->
-          <g class="arch-node" data-node="toold" transform="translate(585, 180)">
-            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
-            <circle cx="25" cy="25" r="5" fill="#f59e0b"/>
-            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">toold</text>
-            <text x="18" y="55" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Tool1</text>
-            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
-            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• Landlock Sandbox</text>
-            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• Polkit Access</text>
-            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Atomic Rollbacks</text>
+          <g class="arch-node" data-node="toold" transform="translate(640, 175)">
+            <rect width="142" height="142" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="20" cy="22" r="5" fill="#f59e0b"/>
+            <text x="32" y="26" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700">toold</text>
+            <text x="12" y="47" fill="#f59e0b" font-family="ui-monospace, monospace" font-size="9">io.syntrop.Tool1</text>
+            <text x="12" y="60" fill="#64748b" font-family="ui-monospace, monospace" font-size="8.5">/run/syntrop</text>
+            <line x1="12" y1="68" x2="130" y2="68" stroke="#223249"/>
+            <text x="12" y="85" fill="#94a3b8" font-family="sans-serif" font-size="9">• Landlock Sandbox</text>
+            <text x="12" y="100" fill="#94a3b8" font-family="sans-serif" font-size="9">• Polkit Control</text>
+            <text x="12" y="115" fill="#94a3b8" font-family="sans-serif" font-size="9">• Atomic Rollbacks</text>
+            <text x="12" y="130" fill="#94a3b8" font-family="sans-serif" font-size="9">• Seccomp Filters</text>
           </g>
 
           <!-- runtimed -->
-          <g class="arch-node" data-node="runtimed" transform="translate(765, 180)">
-            <rect width="155" height="135" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
-            <circle cx="25" cy="25" r="5" fill="#10b981"/>
-            <text x="38" y="28" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="14" font-weight="700">runtimed</text>
-            <text x="18" y="55" fill="#10b981" font-family="ui-monospace, monospace" font-size="10">io.syntrop.Runtime1</text>
-            <line x1="18" y1="65" x2="137" y2="65" stroke="#223249"/>
-            <text x="18" y="85" fill="#94a3b8" font-family="sans-serif" font-size="10">• In-Process GGUF</text>
-            <text x="18" y="102" fill="#94a3b8" font-family="sans-serif" font-size="10">• 128-dim Embed</text>
-            <text x="18" y="119" fill="#94a3b8" font-family="sans-serif" font-size="10">• Zero-C Deps</text>
+          <g class="arch-node" data-node="runtimed" transform="translate(794, 175)">
+            <rect width="142" height="142" rx="6" fill="#162032" stroke="#223249" stroke-width="1.5"/>
+            <circle cx="20" cy="22" r="5" fill="#10b981"/>
+            <text x="32" y="26" fill="#f1f5f9" font-family="ui-monospace, monospace" font-size="13" font-weight="700">runtimed</text>
+            <text x="12" y="47" fill="#10b981" font-family="ui-monospace, monospace" font-size="9">io.syntrop.Runtime1</text>
+            <text x="12" y="60" fill="#64748b" font-family="ui-monospace, monospace" font-size="8.5">In-Process Candle</text>
+            <line x1="12" y1="68" x2="130" y2="68" stroke="#223249"/>
+            <text x="12" y="85" fill="#94a3b8" font-family="sans-serif" font-size="9">• In-Process GGUF</text>
+            <text x="12" y="100" fill="#94a3b8" font-family="sans-serif" font-size="9">• 128-dim Embed</text>
+            <text x="12" y="115" fill="#94a3b8" font-family="sans-serif" font-size="9">• Zero C Deps</text>
+            <text x="12" y="130" fill="#94a3b8" font-family="sans-serif" font-size="9">• Socket Activated</text>
           </g>
 
-          <!-- Layer 3 Primitives -->
-          <g transform="translate(45, 400)">
-            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
-            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">DRM / dev-dri-*</text>
+          <!-- Layer 3 Primitives & Hardware / Compute Destinations -->
+          <g transform="translate(24, 400)">
+            <rect width="142" height="42" rx="4" fill="#0c121d" stroke="#00d2b4" stroke-width="1.2"/>
+            <text x="71" y="20" fill="#00d2b4" font-family="ui-monospace, monospace" font-size="9.5" font-weight="700" text-anchor="middle">Cloud &amp; LAN Clusters</text>
+            <text x="71" y="34" fill="#64748b" font-family="sans-serif" font-size="8.5" text-anchor="middle">Ollama / OpenAI / Anthropic</text>
           </g>
 
-          <g transform="translate(195, 400)">
-            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
-            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">reflink / CAS</text>
+          <g transform="translate(178, 400)">
+            <rect width="142" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="71" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">DRM / dev-dri-*</text>
           </g>
 
-          <g transform="translate(345, 400)">
-            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
-            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">fanotify / journal</text>
+          <g transform="translate(332, 400)">
+            <rect width="142" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="71" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">reflink / CAS</text>
           </g>
 
-          <g transform="translate(495, 400)">
-            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
-            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">cgroups v2 / PSI</text>
+          <g transform="translate(486, 400)">
+            <rect width="142" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="71" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">fanotify / journal</text>
           </g>
 
-          <g transform="translate(645, 400)">
-            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
-            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">Landlock / seccomp</text>
+          <g transform="translate(640, 400)">
+            <rect width="142" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="71" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">Landlock / seccomp</text>
           </g>
 
-          <g transform="translate(795, 400)">
-            <rect width="125" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
-            <text x="62" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">sealed memfd</text>
+          <g transform="translate(794, 400)">
+            <rect width="142" height="42" rx="4" fill="#0c121d" stroke="#1e293b"/>
+            <text x="71" y="25" fill="#94a3b8" font-family="ui-monospace, monospace" font-size="10" text-anchor="middle">cgroups v2 / memfd</text>
           </g>
 
           <!-- Interconnect Lines -->
-          <line x1="140" y1="89" x2="120" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
-          <line x1="140" y1="89" x2="300" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
-          <line x1="140" y1="89" x2="480" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
-          <line x1="140" y1="89" x2="660" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
-          <line x1="140" y1="89" x2="840" y2="180" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <!-- syntropctl (140, 89) to daemons -->
+          <line x1="140" y1="89" x2="95" y2="175" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="249" y2="175" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="403" y2="175" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="557" y2="175" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="711" y2="175" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="140" y1="89" x2="865" y2="175" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3"/>
 
-          <line x1="490" y1="89" x2="480" y2="180" stroke="#f43f5e" stroke-width="2"/>
-          <line x1="490" y1="89" x2="120" y2="180" stroke="#f43f5e" stroke-width="2"/>
+          <!-- sentry (490, 89) supervisory dispatch -->
+          <line x1="490" y1="89" x2="95" y2="175" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <line x1="490" y1="89" x2="249" y2="175" stroke="#f43f5e" stroke-width="2"/>
+          <line x1="490" y1="89" x2="557" y2="175" stroke="#f43f5e" stroke-width="2"/>
+
+          <!-- routerd mediation to compute destinations -->
+          <line x1="95" y1="317" x2="95" y2="400" stroke="#00d2b4" stroke-width="2"/>
+          <polygon points="91,395 95,401 99,395" fill="#00d2b4"/>
+          <!-- routerd to local compute destinations -->
+          <path d="M 95 300 Q 180 345 249 317" fill="none" stroke="#00d2b4" stroke-width="1.5" stroke-dasharray="2 2"/>
+          <path d="M 95 295 Q 490 365 794 300" fill="none" stroke="#00d2b4" stroke-width="1.5" stroke-dasharray="2 2"/>
         </svg>
       </div>
 
@@ -328,6 +364,113 @@
         <p>
           Each daemon ships with paired <code>.socket</code> and <code>.service</code> units. The socket unit specifies <code>ListenStream=/run/syntrop/io.syntrop.&lt;Name&gt;1</code> and <code>SocketMode=0660</code>. At system boot, systemd creates the file descriptor. No daemon process runs until a client calls <code>connect()</code> on the socket. When active work ceases, the daemon terminates cleanly after its idle window, returning all resident memory back to the kernel page allocator.
         </p>
+      </div>
+
+      <div style="margin-top: 2rem;">
+        <h3 style="font-size: 1.15rem; color: var(--teal); margin-bottom: 0.5rem;">Port &amp; Socket Reference</h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1rem;">
+          Descriptor, endpoint, and transport mappings across all syntropd socket-activated units:
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Daemon</th>
+                <th>Protocol / Transport</th>
+                <th>Endpoint / Bind Path</th>
+                <th>Socket Unit</th>
+                <th>Role &amp; Security Directives</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>routerd</strong></td>
+                <td>TCP (dual-stack HTTP/1.1 &amp; HTTP/2)</td>
+                <td><code>127.0.0.1:32768</code><br><code>[::1]:32768</code></td>
+                <td><code>routerd.socket</code> (FD 3)</td>
+                <td>Wire ingress reverse proxy for OpenAI/Ollama compatible clients</td>
+              </tr>
+              <tr>
+                <td><strong>routerd</strong></td>
+                <td>Unix Domain Socket (Stream)</td>
+                <td><code>/run/syntrop/router.sock</code></td>
+                <td><code>routerd.socket</code> (FD 4)</td>
+                <td><code>SocketMode=0666</code>; local IPC reverse proxy endpoint</td>
+              </tr>
+              <tr>
+                <td><strong>routerd</strong></td>
+                <td>Varlink IPC (AF_UNIX)</td>
+                <td><code>/run/syntrop/io.syntrop.Router1</code></td>
+                <td><code>routerd.socket</code> (FD 5)</td>
+                <td><code>SocketMode=0666</code>; dynamic scoring control plane &amp; telemetry</td>
+              </tr>
+              <tr>
+                <td><strong>inferenced</strong></td>
+                <td>Varlink IPC (AF_UNIX)</td>
+                <td><code>/run/syntrop/io.syntrop.Inference1</code></td>
+                <td><code>inferenced.socket</code> (FD 3)</td>
+                <td><code>SocketMode=0666</code>; primary hardware lease arbitration</td>
+              </tr>
+              <tr>
+                <td><strong>inferenced</strong></td>
+                <td>Dedicated Enclave Socket</td>
+                <td><code>/run/syntrop/sentry.sock</code></td>
+                <td><code>inferenced.socket</code> (FD 4)</td>
+                <td><code>SocketMode=0660</code>, <code>Group=syntrop</code>; priority triage leases</td>
+              </tr>
+              <tr>
+                <td><strong>inferenced</strong></td>
+                <td>Unix Domain Gateway</td>
+                <td><code>/run/syntrop/gateway.sock</code></td>
+                <td><code>inferenced.socket</code> (FD 5)</td>
+                <td><code>SocketMode=0660</code>, <code>Group=syntrop</code>; local gateway (decoupled from 11434)</td>
+              </tr>
+              <tr>
+                <td><strong>inferenced</strong></td>
+                <td>SCM_RIGHTS Memfd Server</td>
+                <td><code>/run/syntrop/fd.sock</code></td>
+                <td><code>inferenced.socket</code> (FD 6)</td>
+                <td><code>SocketMode=0660</code>, <code>Group=syntrop</code>; zero-copy shared memory descriptors</td>
+              </tr>
+              <tr>
+                <td><strong>modeld</strong></td>
+                <td>Varlink IPC (AF_UNIX)</td>
+                <td><code>/run/syntrop/io.syntrop.Model1</code></td>
+                <td><code>modeld.socket</code> (FD 3)</td>
+                <td><code>SocketMode=0666</code>; content-addressable model cache &amp; pinning</td>
+              </tr>
+              <tr>
+                <td><strong>contextd</strong></td>
+                <td>Varlink IPC (AF_UNIX)</td>
+                <td><code>/run/syntrop/io.syntrop.Context1</code></td>
+                <td><code>contextd.socket</code> (FD 3)</td>
+                <td><code>SocketMode=0666</code>; chronology &amp; config drift tracking</td>
+              </tr>
+              <tr>
+                <td><strong>toold</strong></td>
+                <td>Varlink IPC (AF_UNIX)</td>
+                <td><code>/run/syntrop/io.syntrop.Tool1</code></td>
+                <td><code>toold.socket</code> (FD 3)</td>
+                <td><code>SocketMode=0666</code>; sandboxed diagnostic &amp; rollback execution</td>
+              </tr>
+              <tr>
+                <td><strong>runtimed</strong></td>
+                <td>Varlink IPC (AF_UNIX)</td>
+                <td><code>/run/syntrop/io.syntrop.Runtime1</code></td>
+                <td><code>runtimed.socket</code> (FD 3)</td>
+                <td><code>SocketMode=0666</code>; pure-Rust neural model inference</td>
+              </tr>
+              <tr>
+                <td><strong>systemd-sentry</strong></td>
+                <td>Unix Domain Socket (Enclave)</td>
+                <td><code>/run/systemd-sentry/sentry.sock</code></td>
+                <td><code>systemd-sentry.socket</code></td>
+                <td><code>SocketMode=0660</code>; crash supervisor control channel</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 

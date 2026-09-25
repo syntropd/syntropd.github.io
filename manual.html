@@ -127,8 +127,9 @@ modeld       /run/syntrop/io.syntrop.Model1          ACTIVE    0.32ms   io.syntr
 contextd     /run/syntrop/io.syntrop.Context1        ACTIVE    0.28ms   io.syntrop.Context1, org.varlink.service
 toold        /run/syntrop/io.syntrop.Tool1           ACTIVE    0.35ms   io.syntrop.Tool1, org.varlink.service
 runtimed     /run/syntrop/io.syntrop.Runtime1        STANDBY   0.15ms   io.syntrop.Runtime1, org.varlink.service
+routerd      /run/syntrop/io.syntrop.Router1         ACTIVE    0.38ms   io.syntrop.Router1, org.varlink.service
 
-System Status: OPERATIONAL (All 5 sockets listening; 0 MB idle RAM footprint)</code></pre>
+System Status: OPERATIONAL (All sockets listening; 0 MB idle RAM footprint)</code></pre>
     </section>
 
     <!-- Subcommand 2: explain -->
@@ -231,6 +232,94 @@ CAS Storage Quota: 8.05 GiB / 32.00 GiB (25.1% utilized)</code></pre>
 04:51:30 (12m ago) contextd    /etc/nginx/nginx.conf                    CONFIG_MODIFIED
 04:50:12 (13m ago) rpm-ostree  openssl-libs (3.0.7 -> 3.2.0)            PKG_UPGRADE
 04:12:05 (51m ago) toold       /etc/systemd/system/redis.service.d/     DROPIN_RESTORED</code></pre>
+    </section>
+
+    <!-- Subcommand 6: routerctl -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>6. <code>routerctl [SUBCOMMAND]</code> &amp; Wire Ingress Verification</h2>
+          <p>Inspect dynamic routing decisions, test upstream LLM providers, and verify wire proxying on port 32768.</p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">ROUTING</span>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1rem;">
+        <code>routerd</code> provides reverse proxy wire ingress on TCP port <code>32768</code> and Unix domain socket <code>/run/syntrop/router.sock</code>. Operators manage routing policies, test upstream providers, and verify model reachability using <code>routerctl</code> and standard HTTP utilities.
+      </p>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">Verify Wire Ingress via curl</h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
+        Verify that <code>routerd</code> is listening on port 32768 and responds to OpenAI-compatible model enumeration:
+      </p>
+      <div class="code-header">
+        <span>$ curl http://127.0.0.1:32768/v1/models</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>{
+  "object": "list",
+  "data": [
+    {
+      "id": "router:fast",
+      "object": "model",
+      "created": 1758784000,
+      "owned_by": "syntropd-router"
+    },
+    {
+      "id": "router:hard",
+      "object": "model",
+      "created": 1758784000,
+      "owned_by": "syntropd-router"
+    },
+    {
+      "id": "qwen2.5-coder-7b",
+      "object": "model",
+      "created": 1758784000,
+      "owned_by": "local-runtimed"
+    }
+  ]
+}</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">Inspect Router Status &amp; PSI Pressure</h3>
+      <div class="code-header">
+        <span>$ routerctl status</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>● routerd.service - Intelligent Model Router and Wire Protocol Gateway
+     Status: OPERATIONAL (Uptime: 1h 45m)
+     Wire Ingress: 127.0.0.1:32768, /run/syntrop/router.sock
+     Varlink IPC:  /run/syntrop/io.syntrop.Router1
+     Memory RSS:   8.42 MiB (MemoryHigh: 24M, MemoryMax: 32M)
+     Kernel PSI:   Memory 0.0% some (normal)
+     Providers:    3 configured, 3 healthy</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">List and Test Configured Providers</h3>
+      <div class="code-header">
+        <span>$ routerctl providers list</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>PROVIDER ID       KIND     TIER    STATUS    WEIGHT   LATENCY    MODELS
+local-runtimed    native   fast    HEALTHY   1.0      12.4ms     qwen2.5-coder-7b
+lan-ollama        ollama   fast    HEALTHY   0.8      48.2ms     deepseek-r1:8b, llama3.2:3b
+cloud-openai      openai   hard    HEALTHY   0.5      245.0ms    gpt-4o, o3-mini</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
+        <span>$ routerctl test local-runtimed</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[TEST] Probing provider 'local-runtimed' at unix:/run/syntrop/io.syntrop.Runtime1...
+[OK] Provider response received in 14.2ms.
+[OK] Health check passed: HTTP 200 OK (models: 1, state: ready)</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">Simulate Routing Decisions</h3>
+      <div class="code-header">
+        <span>$ routerctl route --model router:fast --tokens 1024</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>ROUTING DECISION CANDIDATES:
+  1. local-runtimed / qwen2.5-coder-7b  [SCORE: 96.4] Speed: 98.0  Cost: 100.0  Cap: 90.0  (Selected)
+  2. lan-ollama / deepseek-r1:8b        [SCORE: 81.2] Speed: 72.0  Cost: 100.0  Cap: 75.0
+  3. cloud-openai / gpt-4o              [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
     </section>
 
     <!-- systemd Unit Drop-In Integration -->

@@ -215,7 +215,7 @@ do_uninstall() {
     systemctl disable --now syntrop-sockets.target 2>/dev/null || true
   fi
 
-  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry" "sentry")
+  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry" "sentry" "routerd")
   for d in "${daemons[@]}"; do
     systemctl disable --now "${d}.socket" 2>/dev/null || true
     systemctl disable --now "${d}.service" 2>/dev/null || true
@@ -238,6 +238,8 @@ do_uninstall() {
         "${BIN_DIR}/runtimed" \
         "${BIN_DIR}/sentry" \
         "${BIN_DIR}/systemd-sentry" \
+        "${BIN_DIR}/routerd" \
+        "${BIN_DIR}/routerctl" \
         "${BIN_DIR}/syntropd"
 
   if [[ "${PURGE}" == "true" ]]; then
@@ -321,7 +323,7 @@ provision_system() {
 install_binaries() {
   log_info "Installing suite binaries to ${BIN_DIR}..."
 
-  local binaries=("syntropctl" "inferenced" "modeld" "contextd" "toold" "runtimed" "sentry" "systemd-sentry" "syntropd")
+  local binaries=("syntropctl" "inferenced" "modeld" "contextd" "toold" "runtimed" "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd")
 
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would install binaries: ${binaries[*]} into ${BIN_DIR}."
@@ -433,6 +435,7 @@ install_binaries() {
         contextd) cargo_packages+=("syntrop-contextd") ;;
         toold) cargo_packages+=("syntrop-toold") ;;
         runtimed) cargo_packages+=("syntrop-runtimed") ;;
+        routerd|routerctl) cargo_packages+=("syntrop-routerd") ;;
       esac
     done
     local unique_pkgs=($(echo "${cargo_packages[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
@@ -463,7 +466,7 @@ register_units() {
   log_info "Registering systemd units into ${UNIT_DIR}..."
 
   if [[ "${DRY_RUN}" == "true" ]]; then
-    log_info "[DRY-RUN] Would register syntrop-sockets.target, syntrop-triage@.service, and all 6 daemon socket/service units."
+    log_info "[DRY-RUN] Would register syntrop-sockets.target, syntrop-triage@.service, and all 7 daemon socket/service units."
     return 0
   fi
 
@@ -472,7 +475,7 @@ register_units() {
 [Unit]
 Description=syntropd Unified Socket Activation Umbrella
 Documentation=https://syntropd.github.io/architecture.html#socket
-Wants=inferenced.socket modeld.socket contextd.socket toold.socket runtimed.socket systemd-sentry.socket
+Wants=inferenced.socket modeld.socket contextd.socket toold.socket runtimed.socket systemd-sentry.socket routerd.socket
 After=network.target
 
 [Install]
@@ -576,7 +579,9 @@ SocketMode=0666
 ListenStream=/run/syntrop/sentry.sock
 SocketMode=0660
 SocketGroup=syntrop
-ListenStream=127.0.0.1:11434
+ListenStream=/run/syntrop/gateway.sock
+SocketMode=0660
+SocketGroup=syntrop
 ListenStream=/run/syntrop/fd.sock
 SocketMode=0660
 SocketGroup=syntrop
@@ -712,7 +717,95 @@ Restart=on-failure
 RestartSec=2s
 EOF
 
-  # 9. Create sentry unit symlink aliases
+  # 9. routerd.socket & routerd.service
+  cat <<'EOF' > "${UNIT_DIR}/routerd.socket"
+[Unit]
+Description=routerd Socket Activation Descriptors
+Documentation=https://github.com/syntropd/routerd
+PartOf=routerd.service
+
+[Socket]
+# File Descriptor 3: TCP dual-stack HTTP reverse proxy
+ListenStream=127.0.0.1:32768
+ListenStream=[::1]:32768
+
+# File Descriptor 4/5: Local Unix domain socket reverse proxy
+ListenStream=/run/syntrop/router.sock
+SocketMode=0666
+
+# Native Varlink IPC socket
+ListenStream=/run/syntrop/io.syntrop.Router1
+SocketMode=0666
+
+# Ensure runtime directory /run/syntrop is provisioned
+RuntimeDirectory=syntrop
+RuntimeDirectoryMode=0755
+DirectoryMode=0755
+
+[Install]
+WantedBy=sockets.target
+EOF
+
+  cat <<EOF > "${UNIT_DIR}/routerd.service"
+[Unit]
+Description=Intelligent Model Router and Wire Protocol Gateway
+Documentation=https://github.com/syntropd/routerd
+After=network.target local-fs.target
+Requires=routerd.socket
+
+[Service]
+Type=notify
+ExecStart=${BIN_DIR}/routerd --config /etc/syntrop/routerd.toml
+Restart=on-failure
+RestartSec=3s
+WatchdogSec=30s
+Slice=ai.slice
+
+# Memory constraints
+MemoryHigh=24M
+MemoryMax=32M
+
+# Security & Sandboxing
+User=syntrop
+Group=syntrop
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+# Directories & Credentials
+RuntimeDirectory=syntrop
+RuntimeDirectoryMode=0755
+ConfigurationDirectory=syntrop
+StateDirectory=routerd
+LogsDirectory=routerd
+
+# cgroup v2 & systemd-oomd Protection
+ManagedOOMPreference=avoid
+OOMScoreAdjust=-800
+OOMPolicy=stop
+
+# Logging & systemd-journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=routerd
+
+LimitCORE=infinity
+Environment=RUST_BACKTRACE=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  # 10. Create sentry unit symlink aliases
   ln -sf "${UNIT_DIR}/systemd-sentry.service" "${UNIT_DIR}/sentry.service"
   ln -sf "${UNIT_DIR}/systemd-sentry.socket" "${UNIT_DIR}/sentry.socket"
 
@@ -735,7 +828,7 @@ activate_subsystem() {
     log_ok "syntrop-sockets.target enabled and started."
 
     # Reset any failed units and ensure all sockets are actively listening
-    local daemons=("toold" "runtimed" "modeld" "inferenced" "contextd")
+    local daemons=("toold" "runtimed" "modeld" "inferenced" "contextd" "routerd")
     for d in "${daemons[@]}"; do
       systemctl reset-failed "${d}.service" 2>/dev/null || true
       if systemctl is-active --quiet "${d}.service" 2>/dev/null; then
@@ -753,7 +846,7 @@ activate_subsystem() {
 
     echo ""
     log_bold "Active Varlink and IPC Sockets:"
-    systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" --no-pager 2>/dev/null || true
+    systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" "routerd*" --no-pager 2>/dev/null || true
   else
     log_info "--no-start specified: skipping socket activation."
   fi
