@@ -345,12 +345,12 @@ EOF
 # /etc/syntrop/routerd.toml
 # syntropd Router & Reverse Proxy Daemon Configuration
 
-[server]
+[daemon]
 listen_tcp = "127.0.0.1:32768"
-listen_socket = "/run/syntrop/router.sock"
+listen_unix = "/run/syntrop/router.sock"
 varlink_socket = "/run/syntrop/io.syntrop.Router1"
 inferenced_socket = "/run/syntrop/io.syntrop.Inference1"
-max_rss_bytes = 15728640
+log_level = "info"
 
 [routing]
 default_tier = "fast"
@@ -1003,9 +1003,17 @@ activate_subsystem() {
     setup_resp="${setup_resp:-Y}"
     if [[ "${setup_resp}" =~ ^[Yy]$ ]]; then
       if [[ -x "${BIN_DIR}/routerctl" ]]; then
-        "${BIN_DIR}/routerctl" setup || true
+        if [[ ! -t 0 && -c /dev/tty ]]; then
+          "${BIN_DIR}/routerctl" setup < /dev/tty || true
+        else
+          "${BIN_DIR}/routerctl" setup || true
+        fi
       elif command -v routerctl >/dev/null 2>&1; then
-        routerctl setup || true
+        if [[ ! -t 0 && -c /dev/tty ]]; then
+          routerctl setup < /dev/tty || true
+        else
+          routerctl setup || true
+        fi
       fi
     fi
   fi
