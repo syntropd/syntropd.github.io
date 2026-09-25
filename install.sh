@@ -25,7 +25,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.4"
+VERSION="0.3.5"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -373,6 +373,7 @@ preferred_models = ["minimax/MiniMax-M3", "mistral/mistral-large-latest", "lan_o
 
 # Upstream Cloud Providers
 [[providers]]
+enabled = false
 id = "minimax"
 name = "MiniMax AI Cloud"
 kind = "minimax"
@@ -383,6 +384,7 @@ cost_per_m_out = 0.80
 models = ["MiniMax-Text-01", "MiniMax-M3"]
 
 [[providers]]
+enabled = false
 id = "groq"
 name = "Groq LPU"
 kind = "openai"
@@ -391,6 +393,7 @@ api_key = "${GROQ_API_KEY}"
 models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 [[providers]]
+enabled = false
 id = "gemini"
 name = "Google Gemini"
 kind = "openai"
@@ -400,6 +403,7 @@ models = ["gemini-2.0-flash"]
 
 # Remote LAN Ollama Servers
 [[providers]]
+enabled = false
 id = "lan_ollama_node1"
 name = "LAN Ollama Node 1"
 kind = "ollama"
@@ -408,6 +412,7 @@ cost_per_m_in = 0.0
 models = ["deepseek-r1:70b", "qwen2.5:72b"]
 
 [[providers]]
+enabled = false
 id = "lan_ollama_node2"
 name = "LAN Ollama Node 2"
 kind = "ollama"
