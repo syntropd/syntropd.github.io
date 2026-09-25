@@ -224,9 +224,9 @@ const TRIAGE_STEPS = [
     step: 5,
     title: 'Phase 5: High-Precision Remediation Token Generation',
     latency: '142.0 ms',
-    desc: 'runtimed is socket-activated by sentry. Loaded with a dedicated compact reasoning model (e.g. qwen2.5-coder or deepseek-r1-distill pinned in modeld CAS store), runtimed processes the prompt containing the sliced journal, PSI stats, and config diff to produce a deterministic root-cause diagnosis and remediation plan.',
+    desc: 'sentry dispatches triage queries to routerd on http://127.0.0.1:32768/v1 (model "fast"), with dynamic scoring across local runtimed and remote backends plus bounded timeouts and deterministic fallback. runtimed processes the prompt containing the sliced journal, PSI stats, and config diff to produce a deterministic root-cause diagnosis and remediation plan.',
     systemAction: 'Root cause identified: "OOM killer triggered due to restrictive 256M cgroup drop-in; recommendation: restore MemoryMax=4G".',
-    cmd: '$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate \'{"model":"qwen-triage:1.5b","prompt":"[TRIAGE PROMPT]...","max_tokens":256,"temperature":0.0}\''
+    cmd: '$ curl -s http://127.0.0.1:32768/v1/chat/completions -d \'{"model":"fast","messages":[{"role":"user","content":"[TRIAGE PROMPT]..."}]}\'\n# Or Varlink direct call to runtimed fallback:\n$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate \'{"model":"qwen-triage:1.5b","prompt":"[TRIAGE PROMPT]...","max_tokens":256,"temperature":0.0}\''
   },
   {
     step: 6,

@@ -388,21 +388,21 @@
                 <td><strong>routerd</strong></td>
                 <td>TCP (dual-stack HTTP/1.1 &amp; HTTP/2)</td>
                 <td><code>127.0.0.1:32768</code><br><code>[::1]:32768</code></td>
-                <td><code>routerd.socket</code> (FD 3)</td>
+                <td><code>routerd.socket</code> (FD 3 &amp; 4)</td>
                 <td>Wire ingress reverse proxy for OpenAI/Ollama compatible clients</td>
               </tr>
               <tr>
                 <td><strong>routerd</strong></td>
                 <td>Unix Domain Socket (Stream)</td>
                 <td><code>/run/syntrop/router.sock</code></td>
-                <td><code>routerd.socket</code> (FD 4)</td>
+                <td><code>routerd.socket</code> (FD 5)</td>
                 <td><code>SocketMode=0666</code>; local IPC reverse proxy endpoint</td>
               </tr>
               <tr>
                 <td><strong>routerd</strong></td>
                 <td>Varlink IPC (AF_UNIX)</td>
                 <td><code>/run/syntrop/io.syntrop.Router1</code></td>
-                <td><code>routerd.socket</code> (FD 5)</td>
+                <td><code>routerd.socket</code> (FD 6)</td>
                 <td><code>SocketMode=0666</code>; dynamic scoring control plane &amp; telemetry</td>
               </tr>
               <tr>
