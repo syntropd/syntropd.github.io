@@ -327,6 +327,14 @@ provision_system() {
   chown root:root "${CONFIG_DIR}"
   chmod 0755 "${CONFIG_DIR}"
 
+  # Provision systemd tmpfiles.d definition so /run/syntrop is permanently preserved
+  cat <<'EOF' > /etc/tmpfiles.d/syntrop.conf
+d /run/syntrop 0775 root syntrop -
+d /run/systemd-sentry 0775 sentry syntrop -
+d /var/lib/syntrop 0775 syntrop syntrop -
+EOF
+  systemd-tmpfiles --create /etc/tmpfiles.d/syntrop.conf 2>/dev/null || true
+
   # Deploy default routerd.toml if missing
   if [[ ! -f "${CONFIG_DIR}/routerd.toml" ]]; then
     cat <<'EOF' > "${CONFIG_DIR}/routerd.toml"
@@ -544,6 +552,17 @@ install_binaries() {
     exit 1
   fi
   log_ok "Verified all ${verified_count}/${#binaries[@]} binaries installed and executable in ${BIN_DIR}."
+
+  # Sync to ~/.local/bin to avoid stale binaries in user PATH
+  if [[ -n "${sudo_home}" && -d "${sudo_home}/.local/bin" ]]; then
+    for bin in "${binaries[@]}"; do
+      if [[ -f "${BIN_DIR}/${bin}" ]]; then
+        install -D -p -m 0755 "${BIN_DIR}/${bin}" "${sudo_home}/.local/bin/${bin}" 2>/dev/null || true
+        chown "${TARGET_USER}:${TARGET_USER}" "${sudo_home}/.local/bin/${bin}" 2>/dev/null || true
+      fi
+    done
+    log_ok "Synchronized updated binaries to ${sudo_home}/.local/bin."
+  fi
 }
 
 # ----------------- Systemd Unit Registration -----------------
