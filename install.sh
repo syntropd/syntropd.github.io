@@ -974,6 +974,34 @@ activate_subsystem() {
   echo "To diagnose a failed unit root-cause:"
   echo "  syntropctl explain <unit>"
   echo ""
+  echo "To configure AI providers or download Gemma 4 models anytime:"
+  echo "  sudo routerctl setup"
+  echo ""
+
+  # Interactive prompt to run routerctl setup
+  local is_interactive=false
+  if [[ -t 0 ]]; then
+    is_interactive=true
+  elif [[ -t 1 && -c /dev/tty ]]; then
+    is_interactive=true
+  fi
+
+  if [[ "${is_interactive}" == "true" && "${DRY_RUN}" != "true" ]]; then
+    local setup_resp=""
+    if [[ -t 0 ]]; then
+      read -r -p "Would you like to configure AI providers and models now with 'routerctl setup'? [Y/n] " setup_resp || setup_resp=""
+    elif [[ -c /dev/tty ]]; then
+      read -r -p "Would you like to configure AI providers and models now with 'routerctl setup'? [Y/n] " setup_resp < /dev/tty 2>/dev/null || setup_resp=""
+    fi
+    setup_resp="${setup_resp:-Y}"
+    if [[ "${setup_resp}" =~ ^[Yy]$ ]]; then
+      if [[ -x "${BIN_DIR}/routerctl" ]]; then
+        "${BIN_DIR}/routerctl" setup || true
+      elif command -v routerctl >/dev/null 2>&1; then
+        routerctl setup || true
+      fi
+    fi
+  fi
 }
 
 # ----------------- Main Execution -----------------
