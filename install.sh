@@ -34,6 +34,7 @@ RUN_DIR="/run/syntrop"
 RUN_SENTRY_DIR="/run/systemd-sentry"
 MODEL_DIR="/var/lib/models"
 ROLLBACK_DIR="/var/lib/syntrop/rollbacks"
+TOOLD_DIR="/var/lib/toold"
 START_SOCKETS=true
 DRY_RUN=false
 UNINSTALL=false
@@ -244,6 +245,7 @@ do_uninstall() {
     rm -rf "${CONFIG_DIR}"
     rm -rf "${MODEL_DIR}"
     rm -rf "${ROLLBACK_DIR}"
+    rm -rf "${TOOLD_DIR}"
     userdel sentry 2>/dev/null || true
     groupdel syntrop 2>/dev/null || true
     log_ok "Purged configurations, data directories, and system user/group."
@@ -291,6 +293,7 @@ provision_system() {
   mkdir -p "${RUN_SENTRY_DIR}"
   mkdir -p "${MODEL_DIR}"
   mkdir -p "${ROLLBACK_DIR}"
+  mkdir -p "${TOOLD_DIR}"
   mkdir -p "${UNIT_DIR}"
 
   chown root:syntrop "${RUN_DIR}"
@@ -301,6 +304,9 @@ provision_system() {
 
   chown root:syntrop "${MODEL_DIR}"
   chmod 0775 "${MODEL_DIR}"
+
+  chown root:syntrop "${TOOLD_DIR}"
+  chmod 0775 "${TOOLD_DIR}"
 
   chown root:root "${ROLLBACK_DIR}"
   chmod 0700 "${ROLLBACK_DIR}"
@@ -518,7 +524,7 @@ After=toold.socket
 Type=notify
 ExecStart=${BIN_DIR}/toold
 ProtectSystem=strict
-ReadWritePaths=/var/lib/syntrop/rollbacks /run/syntrop
+ReadWritePaths=/var/lib/toold /var/lib/syntrop/rollbacks /run/syntrop
 Restart=on-failure
 RestartSec=2s
 EOF
@@ -730,7 +736,7 @@ activate_subsystem() {
 
     echo ""
     log_bold "Active Varlink and IPC Sockets:"
-    systemctl list-sockets "syntrop*" "*sentry*" --no-pager 2>/dev/null || true
+    systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" --no-pager 2>/dev/null || true
   else
     log_info "--no-start specified: skipping socket activation."
   fi
