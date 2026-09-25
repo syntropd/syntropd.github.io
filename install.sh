@@ -16,7 +16,9 @@
 #   --prefix <PATH>     Installation prefix for binaries (default: /usr/local)
 #   --dry-run           Perform pre-flight checks without modifying the system
 #   --uninstall         Disable and remove syntropd daemons, units, and binaries
+#   --purge             Used with --uninstall to also purge configs, caches, user/group
 #   --no-start          Install units but do not enable or start sockets
+#   --user <USER>       Enroll specific user into 'syntrop' group (defaults to SUDO_USER)
 #   --local <PATH>      Install from local project directories / checkout
 #   -h, --help          Show this help message
 # ==============================================================================
@@ -35,7 +37,9 @@ ROLLBACK_DIR="/var/lib/syntrop/rollbacks"
 START_SOCKETS=true
 DRY_RUN=false
 UNINSTALL=false
+PURGE=false
 LOCAL_SRC=""
+TARGET_USER="${SUDO_USER:-}"
 
 # Colors
 BOLD="\033[1m"
@@ -67,16 +71,24 @@ while [[ $# -gt 0 ]]; do
       UNINSTALL=true
       shift
       ;;
+    --purge)
+      PURGE=true
+      shift
+      ;;
     --no-start)
       START_SOCKETS=false
       shift
+      ;;
+    --user)
+      TARGET_USER="$2"
+      shift 2
       ;;
     --local)
       LOCAL_SRC="$2"
       shift 2
       ;;
     -h|--help)
-      sed -n '2,22p' "$0" | sed 's/^# //'
+      sed -n '2,24p' "$0" | sed 's/^# //'
       exit 0
       ;;
     *)
@@ -202,7 +214,7 @@ do_uninstall() {
     systemctl disable --now syntrop-sockets.target 2>/dev/null || true
   fi
 
-  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry")
+  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry" "sentry")
   for d in "${daemons[@]}"; do
     systemctl disable --now "${d}.socket" 2>/dev/null || true
     systemctl disable --now "${d}.service" 2>/dev/null || true
@@ -211,7 +223,10 @@ do_uninstall() {
 
   rm -f "${UNIT_DIR}/syntrop-sockets.target"
   rm -f "${UNIT_DIR}/syntrop-triage@.service"
+  rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}"
+
   systemctl daemon-reload 2>/dev/null || true
+  systemctl reset-failed 2>/dev/null || true
 
   log_info "Removing binaries from ${BIN_DIR}..."
   rm -f "${BIN_DIR}/syntropctl" \
@@ -224,7 +239,17 @@ do_uninstall() {
         "${BIN_DIR}/systemd-sentry" \
         "${BIN_DIR}/syntropd"
 
-  log_ok "Uninstallation complete. (Model cache in ${MODEL_DIR} preserved)."
+  if [[ "${PURGE}" == "true" ]]; then
+    log_info "--purge specified: removing configuration, caches, and system user/group..."
+    rm -rf "${CONFIG_DIR}"
+    rm -rf "${MODEL_DIR}"
+    rm -rf "${ROLLBACK_DIR}"
+    userdel sentry 2>/dev/null || true
+    groupdel syntrop 2>/dev/null || true
+    log_ok "Purged configurations, data directories, and system user/group."
+  else
+    log_ok "Uninstallation complete. (Model cache in ${MODEL_DIR} and configs in ${CONFIG_DIR} preserved)."
+  fi
   exit 0
 }
 
@@ -251,7 +276,15 @@ provision_system() {
     log_ok "Created system user: sentry"
   fi
 
-  # 3. System directories
+  # 3. User enrollment for unprivileged IPC socket access
+  if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
+    if id "${TARGET_USER}" >/dev/null 2>&1; then
+      usermod -aG syntrop "${TARGET_USER}"
+      log_ok "Added user '${TARGET_USER}' to group 'syntrop' for unprivileged IPC access."
+    fi
+  fi
+
+  # 4. System directories
   mkdir -p "${BIN_DIR}"
   mkdir -p "${CONFIG_DIR}"
   mkdir -p "${RUN_DIR}"
@@ -264,7 +297,7 @@ provision_system() {
   chmod 0775 "${RUN_DIR}"
 
   chown sentry:syntrop "${RUN_SENTRY_DIR}" 2>/dev/null || chown root:syntrop "${RUN_SENTRY_DIR}"
-  chmod 0770 "${RUN_SENTRY_DIR}"
+  chmod 0775 "${RUN_SENTRY_DIR}"
 
   chown root:syntrop "${MODEL_DIR}"
   chmod 0775 "${MODEL_DIR}"
@@ -289,7 +322,6 @@ install_binaries() {
     return 0
   fi
 
-  # Strategy A: Local build tree
   local script_dir
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local search_roots=("${LOCAL_SRC}" "${script_dir}/.." "${script_dir}")
@@ -302,7 +334,7 @@ install_binaries() {
         continue
       fi
 
-      # Check target/release or target/debug
+      # Check all target/release and target/debug permutations across repos
       local candidate
       for candidate in \
         "${root}/target/release/${bin}" \
@@ -339,6 +371,15 @@ install_binaries() {
       log_warn "Binary ${bin} not yet built locally; install via \`cargo install ${bin}\`."
     fi
   done
+
+  # Verify all 9 binaries
+  local verified_count=0
+  for bin in "${binaries[@]}"; do
+    if [[ -x "${BIN_DIR}/${bin}" ]]; then
+      verified_count=$((verified_count + 1))
+    fi
+  done
+  log_ok "Verified ${verified_count}/${#binaries[@]} binaries installed in ${BIN_DIR}."
 }
 
 # ----------------- Systemd Unit Registration -----------------
@@ -560,15 +601,19 @@ EOF
   # 8. systemd-sentry.socket & systemd-sentry.service
   cat <<'EOF' > "${UNIT_DIR}/systemd-sentry.socket"
 [Unit]
-Description=systemd-sentry IPC Socket
+Description=systemd-sentry IPC and Varlink Activation Sockets
 Documentation=https://github.com/syntropd/sentry
+PartOf=systemd-sentry.service
 
 [Socket]
 ListenStream=/run/systemd-sentry/sentry.sock
+ListenStream=/run/syntrop/io.syntrop.Sentry1
 SocketUser=sentry
 SocketGroup=syntrop
 SocketMode=0660
 DirectoryMode=0755
+PassCredentials=yes
+PassSecurity=yes
 
 [Install]
 WantedBy=sockets.target
@@ -586,12 +631,17 @@ Type=notify
 User=sentry
 Group=syntrop
 ExecStart=${BIN_DIR}/systemd-sentry
+ReadWritePaths=/run/syntrop /run/systemd-sentry
 Restart=on-failure
 RestartSec=2s
 EOF
 
+  # 9. Create sentry unit symlink aliases
+  ln -sf "${UNIT_DIR}/systemd-sentry.service" "${UNIT_DIR}/sentry.service"
+  ln -sf "${UNIT_DIR}/systemd-sentry.socket" "${UNIT_DIR}/sentry.socket"
+
   systemctl daemon-reload
-  log_ok "Systemd units successfully registered and daemon reloaded."
+  log_ok "Systemd units and aliases successfully registered and daemon reloaded."
 }
 
 # ----------------- Start & Activate -----------------
@@ -610,7 +660,7 @@ activate_subsystem() {
 
     echo ""
     log_bold "Active Varlink and IPC Sockets:"
-    systemctl list-sockets "syntrop*" --no-pager 2>/dev/null || true
+    systemctl list-sockets "syntrop*" "*sentry*" --no-pager 2>/dev/null || true
   else
     log_info "--no-start specified: skipping socket activation."
   fi
@@ -623,6 +673,13 @@ activate_subsystem() {
   echo "  syntropctl status"
   echo "  syntropd status"
   echo ""
+  if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
+    echo -e "${YELLOW}[NOTE]${RESET} User '${TARGET_USER}' was enrolled in group 'syntrop'."
+    echo "       To apply the new group to your current terminal session, run:"
+    echo -e "         ${BOLD}newgrp syntrop${RESET}"
+    echo "       or log out and back in."
+    echo ""
+  fi
   echo "To diagnose a failed unit root-cause:"
   echo "  syntropctl explain <unit>"
   echo ""
