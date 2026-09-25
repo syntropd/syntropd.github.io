@@ -683,7 +683,7 @@ PartOf=systemd-sentry.service
 
 [Socket]
 ListenStream=/run/systemd-sentry/sentry.sock
-ListenStream=/run/syntrop/io.syntrop.Sentry1
+Symlinks=/run/syntrop/io.syntrop.Sentry1
 SocketUser=sentry
 SocketGroup=syntrop
 SocketMode=0660
@@ -731,20 +731,25 @@ activate_subsystem() {
   if [[ "${START_SOCKETS}" == "true" ]]; then
     log_info "Enabling and starting syntrop-sockets.target..."
     systemctl enable syntrop-sockets.target
-    systemctl start syntrop-sockets.target
+    systemctl restart syntrop-sockets.target
     log_ok "syntrop-sockets.target enabled and started."
 
-    # Reset any failed units and restart supervisor so updated binaries take effect
+    # Reset any failed units and ensure all sockets are actively listening
     local daemons=("toold" "runtimed" "modeld" "inferenced" "contextd")
     for d in "${daemons[@]}"; do
       systemctl reset-failed "${d}.service" 2>/dev/null || true
       if systemctl is-active --quiet "${d}.service" 2>/dev/null; then
         systemctl stop "${d}.service" 2>/dev/null || true
       fi
+      systemctl start "${d}.socket" 2>/dev/null || true
     done
     if systemctl is-active --quiet "systemd-sentry.service" 2>/dev/null || systemctl is-active --quiet "systemd-sentry.socket" 2>/dev/null; then
       systemctl restart "systemd-sentry.service" 2>/dev/null || true
     fi
+    systemctl start "systemd-sentry.socket" 2>/dev/null || true
+
+    mkdir -p /run/syntrop
+    ln -sf /run/systemd-sentry/sentry.sock /run/syntrop/io.syntrop.Sentry1 2>/dev/null || true
 
     echo ""
     log_bold "Active Varlink and IPC Sockets:"
