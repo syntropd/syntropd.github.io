@@ -280,6 +280,13 @@ provision_system() {
     log_ok "Created system user: sentry"
   fi
 
+  # 2b. System user: syntrop (for routerd and unprivileged daemons)
+  if ! id -u syntrop >/dev/null 2>&1; then
+    useradd -r -s /usr/sbin/nologin -g syntrop -d /var/lib/syntrop -c "syntropd AI Subsystem" syntrop 2>/dev/null || \
+    useradd -r -s /bin/false -g syntrop -d /var/lib/syntrop -c "syntropd AI Subsystem" syntrop
+    log_ok "Created system user: syntrop"
+  fi
+
   # 3. User enrollment for unprivileged IPC socket access
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     if id "${TARGET_USER}" >/dev/null 2>&1; then
@@ -313,8 +320,81 @@ provision_system() {
   chown root:root "${ROLLBACK_DIR}"
   chmod 0700 "${ROLLBACK_DIR}"
 
+  mkdir -p /var/lib/syntrop
+  chown syntrop:syntrop /var/lib/syntrop 2>/dev/null || true
+  chmod 0755 /var/lib/syntrop
+
   chown root:root "${CONFIG_DIR}"
   chmod 0755 "${CONFIG_DIR}"
+
+  # Deploy default routerd.toml if missing
+  if [[ ! -f "${CONFIG_DIR}/routerd.toml" ]]; then
+    cat <<'EOF' > "${CONFIG_DIR}/routerd.toml"
+# /etc/syntrop/routerd.toml
+# syntropd Router & Reverse Proxy Daemon Configuration
+
+[server]
+listen_tcp = "127.0.0.1:32768"
+listen_socket = "/run/syntrop/router.sock"
+varlink_socket = "/run/syntrop/io.syntrop.Router1"
+inferenced_socket = "/run/syntrop/io.syntrop.Inference1"
+max_rss_bytes = 15728640
+
+[routing]
+default_tier = "fast"
+strategy = "balanced"
+psi_offload_threshold = "Elevated"
+
+[tiers.fast]
+preferred_models = ["minimax/MiniMax-Text-01", "groq/llama-3.3-70b-versatile", "gemini/gemini-2.0-flash"]
+
+[tiers.hard]
+min_context_window = 32768
+preferred_models = ["minimax/MiniMax-M3", "mistral/mistral-large-latest", "lan_ollama_node1/deepseek-r1:70b"]
+
+# Upstream Cloud Providers
+[[providers]]
+name = "minimax"
+kind = "minimax"
+base_url = "https://api.minimax.io/v1"
+api_key = "cred:minimax_api_key"
+cost_per_m_in = 0.20
+cost_per_m_out = 0.80
+models = ["MiniMax-Text-01", "MiniMax-M3"]
+
+[[providers]]
+name = "groq"
+kind = "openai_compatible"
+base_url = "https://api.groq.com/openai/v1"
+api_key = "${GROQ_API_KEY}"
+models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+
+[[providers]]
+name = "gemini"
+kind = "openai_compatible"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+api_key = "${GEMINI_API_KEY}"
+models = ["gemini-2.0-flash"]
+
+# Remote LAN Ollama Servers
+[[providers]]
+name = "lan_ollama_node1"
+kind = "ollama"
+base_url = "http://192.168.1.101:11434/v1"
+cost_per_m_in = 0.0
+models = ["deepseek-r1:70b", "qwen2.5:72b"]
+
+[[providers]]
+name = "lan_ollama_node2"
+kind = "ollama"
+base_url = "http://192.168.1.102:11434/v1"
+cost_per_m_in = 0.0
+models = ["llama3.2:latest", "qwen2.5-coder:7b"]
+EOF
+    chown root:syntrop "${CONFIG_DIR}/routerd.toml" 2>/dev/null || true
+    chmod 0640 "${CONFIG_DIR}/routerd.toml" 2>/dev/null || true
+    log_ok "Provisioned default router configuration at ${CONFIG_DIR}/routerd.toml"
+  fi
 
   log_ok "System directories and ownership provisioned."
 }
@@ -834,12 +914,12 @@ activate_subsystem() {
       if systemctl is-active --quiet "${d}.service" 2>/dev/null; then
         systemctl stop "${d}.service" 2>/dev/null || true
       fi
-      systemctl start "${d}.socket" 2>/dev/null || true
+      systemctl restart "${d}.socket" 2>/dev/null || true
     done
     if systemctl is-active --quiet "systemd-sentry.service" 2>/dev/null || systemctl is-active --quiet "systemd-sentry.socket" 2>/dev/null; then
       systemctl restart "systemd-sentry.service" 2>/dev/null || true
     fi
-    systemctl start "systemd-sentry.socket" 2>/dev/null || true
+    systemctl restart "systemd-sentry.socket" 2>/dev/null || true
 
     mkdir -p /run/syntrop
     ln -sf /run/systemd-sentry/sentry.sock /run/syntrop/io.syntrop.Sentry1 2>/dev/null || true
