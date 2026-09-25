@@ -427,7 +427,7 @@ EOF
 install_binaries() {
   log_info "Installing suite binaries to ${BIN_DIR}..."
 
-  local binaries=("syntropctl" "inferenced" "modeld" "contextd" "toold" "runtimed" "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd")
+  local binaries=("syntropctl" "inferenced" "inferenctl" "modeld" "modelctl" "contextd" "contextctl" "toold" "toolctl" "runtimed" "runtimectl" "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd")
 
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would install binaries: ${binaries[*]} into ${BIN_DIR}."
@@ -512,6 +512,11 @@ install_binaries() {
       case "${bin}" in
         systemd-sentry) src="sentry" ;;
         routerctl) src="routerd" ;;
+        inferenctl) src="inferenced" ;;
+        modelctl) src="modeld" ;;
+        contextctl) src="contextd" ;;
+        toolctl) src="toold" ;;
+        runtimectl) src="runtimed" ;;
       esac
       local built=false
       for root in "${search_roots[@]}"; do
@@ -586,6 +591,11 @@ install_binaries() {
         toold) cargo_packages+=("syntrop-toold") ;;
         runtimed) cargo_packages+=("syntrop-runtimed") ;;
         routerd|routerctl) cargo_packages+=("syntrop-routerd" "routerctl") ;;
+        inferenctl) cargo_packages+=("inferenctl") ;;
+        modelctl) cargo_packages+=("modelctl") ;;
+        contextctl) cargo_packages+=("contextctl") ;;
+        toolctl) cargo_packages+=("toolctl") ;;
+        runtimectl) cargo_packages+=("runtimectl") ;;
       esac
     done
     local unique_pkgs=($(echo "${cargo_packages[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
@@ -617,7 +627,7 @@ install_binaries() {
       rm -f "${sudo_home}/.local/bin/${dbin}"
     done
 
-    local cli_bins=("syntropctl" "routerctl" "syntropd")
+    local cli_bins=("syntropctl" "routerctl" "syntropd" "inferenctl" "modelctl" "contextctl" "toolctl" "runtimectl")
     for cbin in "${cli_bins[@]}"; do
       if [[ -f "${BIN_DIR}/${cbin}" ]]; then
         ln -sf "${BIN_DIR}/${cbin}" "${sudo_home}/.local/bin/${cbin}"
