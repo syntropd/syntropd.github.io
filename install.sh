@@ -435,7 +435,7 @@ install_binaries() {
         contextd) cargo_packages+=("syntrop-contextd") ;;
         toold) cargo_packages+=("syntrop-toold") ;;
         runtimed) cargo_packages+=("syntrop-runtimed") ;;
-        routerd|routerctl) cargo_packages+=("syntrop-routerd") ;;
+        routerd|routerctl) cargo_packages+=("syntrop-routerd" "routerctl") ;;
       esac
     done
     local unique_pkgs=($(echo "${cargo_packages[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))

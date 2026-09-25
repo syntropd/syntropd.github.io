@@ -706,6 +706,13 @@ function initVarlinkBrowser() {
   } else {
     renderSpec('inferenced');
   }
+
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash;
+    if (hash && hashMap[hash]) {
+      renderSpec(hashMap[hash]);
+    }
+  });
 }
 
 function escapeHtml(str) {
