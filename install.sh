@@ -249,6 +249,7 @@ do_uninstall() {
     rm -rf "${ROLLBACK_DIR}"
     rm -rf "${TOOLD_DIR}"
     userdel sentry 2>/dev/null || true
+    userdel -f syntrop 2>/dev/null || true
     groupdel syntrop 2>/dev/null || true
     log_ok "Purged configurations, data directories, and system user/group."
   else
@@ -322,7 +323,7 @@ provision_system() {
 
   mkdir -p /var/lib/syntrop
   chown syntrop:syntrop /var/lib/syntrop 2>/dev/null || true
-  chmod 0755 /var/lib/syntrop
+  chmod 0775 /var/lib/syntrop
 
   chown root:root "${CONFIG_DIR}"
   chmod 0755 "${CONFIG_DIR}"
@@ -332,6 +333,9 @@ provision_system() {
 d /run/syntrop 0775 root syntrop -
 d /run/systemd-sentry 0775 sentry syntrop -
 d /var/lib/syntrop 0775 syntrop syntrop -
+d /var/lib/models 0775 root syntrop -
+d /var/lib/toold 0775 root syntrop -
+L+ /run/syntrop/io.syntrop.Sentry1 - - - - /run/systemd-sentry/sentry.sock
 EOF
   systemd-tmpfiles --create /etc/tmpfiles.d/syntrop.conf 2>/dev/null || true
 
@@ -553,15 +557,23 @@ install_binaries() {
   fi
   log_ok "Verified all ${verified_count}/${#binaries[@]} binaries installed and executable in ${BIN_DIR}."
 
-  # Sync to ~/.local/bin to avoid stale binaries in user PATH
+  # Purge daemon binaries from ~/.local/bin to prevent PATH shadowing, symlink client CLIs only
   if [[ -n "${sudo_home}" && -d "${sudo_home}/.local/bin" ]]; then
-    for bin in "${binaries[@]}"; do
-      if [[ -f "${BIN_DIR}/${bin}" ]]; then
-        install -D -p -m 0755 "${BIN_DIR}/${bin}" "${sudo_home}/.local/bin/${bin}" 2>/dev/null || true
-        chown "${TARGET_USER}:${TARGET_USER}" "${sudo_home}/.local/bin/${bin}" 2>/dev/null || true
+    local daemon_bins=("routerd" "systemd-sentry" "sentry" "inferenced" "modeld" "contextd" "toold" "runtimed")
+    for dbin in "${daemon_bins[@]}"; do
+      rm -f "${sudo_home}/.local/bin/${dbin}"
+    done
+
+    local cli_bins=("syntropctl" "routerctl" "syntropd")
+    for cbin in "${cli_bins[@]}"; do
+      if [[ -f "${BIN_DIR}/${cbin}" ]]; then
+        ln -sf "${BIN_DIR}/${cbin}" "${sudo_home}/.local/bin/${cbin}"
+        if [[ -n "${TARGET_USER}" ]]; then
+          chown -h "${TARGET_USER}:${TARGET_USER}" "${sudo_home}/.local/bin/${cbin}" 2>/dev/null || true
+        fi
       fi
     done
-    log_ok "Synchronized updated binaries to ${sudo_home}/.local/bin."
+    log_ok "Purged daemon binaries and linked client CLIs in ${sudo_home}/.local/bin."
   fi
 }
 
@@ -605,11 +617,11 @@ EOF
 [Unit]
 Description=Syntropd Sandboxed Action and Diagnostic Execution Varlink Socket
 Documentation=https://github.com/syntropd/toold
-PartOf=toold.service
+PartOf=syntrop-sockets.target
 
 [Socket]
 ListenStream=/run/syntrop/io.syntrop.Tool1
-SocketMode=0660
+SocketMode=0666
 SocketUser=root
 SocketGroup=syntrop
 DirectoryMode=0755
@@ -617,7 +629,7 @@ PassCredentials=yes
 PassSecurity=yes
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/toold.service"
@@ -641,11 +653,11 @@ EOF
 [Unit]
 Description=Syntropd Headless Model Execution and Tensor Generation Varlink Socket
 Documentation=https://github.com/syntropd/runtimed
-PartOf=runtimed.service
+PartOf=syntrop-sockets.target
 
 [Socket]
 ListenStream=/run/syntrop/io.syntrop.Runtime1
-SocketMode=0660
+SocketMode=0666
 SocketUser=root
 SocketGroup=syntrop
 DirectoryMode=0755
@@ -653,7 +665,7 @@ PassCredentials=yes
 PassSecurity=yes
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/runtimed.service"
@@ -676,25 +688,20 @@ EOF
 [Unit]
 Description=inferenced Activation Sockets
 Documentation=https://github.com/syntropd/inferenced
+PartOf=syntrop-sockets.target
 
 [Socket]
 ListenStream=/run/syntrop/io.syntrop.Inference1
-SocketMode=0666
 ListenStream=/run/syntrop/sentry.sock
-SocketMode=0660
-SocketGroup=syntrop
 ListenStream=/run/syntrop/gateway.sock
-SocketMode=0660
-SocketGroup=syntrop
 ListenStream=/run/syntrop/fd.sock
-SocketMode=0660
+SocketMode=0666
+SocketUser=root
 SocketGroup=syntrop
-RuntimeDirectory=syntrop
-RuntimeDirectoryMode=0755
 DirectoryMode=0755
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/inferenced.service"
@@ -717,11 +724,11 @@ EOF
 [Unit]
 Description=Syntropd System Chronology and Causality Graph Varlink Socket
 Documentation=https://github.com/syntropd/contextd
-PartOf=contextd.service
+PartOf=syntrop-sockets.target
 
 [Socket]
 ListenStream=/run/syntrop/io.syntrop.Context1
-SocketMode=0660
+SocketMode=0666
 SocketUser=root
 SocketGroup=syntrop
 DirectoryMode=0755
@@ -729,7 +736,7 @@ PassCredentials=yes
 PassSecurity=yes
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/contextd.service"
@@ -752,20 +759,18 @@ EOF
 [Unit]
 Description=Syntropd modeld IPC Activation Sockets
 Documentation=https://github.com/syntropd/modeld
-PartOf=modeld.service
+PartOf=syntrop-sockets.target
 
 [Socket]
 ListenStream=/run/syntrop/io.syntrop.Model1
-SocketMode=0660
-SocketUser=root
-SocketGroup=syntrop
 ListenStream=/run/syntrop/modeld-fd.sock
-SocketMode=0660
+SocketMode=0666
 SocketUser=root
 SocketGroup=syntrop
+DirectoryMode=0755
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/modeld.service"
@@ -788,20 +793,19 @@ EOF
 [Unit]
 Description=systemd-sentry IPC and Varlink Activation Sockets
 Documentation=https://github.com/syntropd/sentry
-PartOf=systemd-sentry.service
+PartOf=syntrop-sockets.target
 
 [Socket]
 ListenStream=/run/systemd-sentry/sentry.sock
-Symlinks=/run/syntrop/io.syntrop.Sentry1
 SocketUser=sentry
 SocketGroup=syntrop
-SocketMode=0660
+SocketMode=0666
 DirectoryMode=0755
 PassCredentials=yes
 PassSecurity=yes
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/systemd-sentry.service"
@@ -826,12 +830,13 @@ EOF
 [Unit]
 Description=routerd Socket Activation Descriptors
 Documentation=https://github.com/syntropd/routerd
-PartOf=routerd.service
+PartOf=syntrop-sockets.target
 
 [Socket]
 # File Descriptor 3: TCP dual-stack HTTP reverse proxy
 ListenStream=127.0.0.1:32768
 ListenStream=[::1]:32768
+ReusePort=yes
 
 # File Descriptor 4/5: Local Unix domain socket reverse proxy
 ListenStream=/run/syntrop/router.sock
@@ -841,13 +846,10 @@ SocketMode=0666
 ListenStream=/run/syntrop/io.syntrop.Router1
 SocketMode=0666
 
-# Ensure runtime directory /run/syntrop is provisioned
-RuntimeDirectory=syntrop
-RuntimeDirectoryMode=0755
 DirectoryMode=0755
 
 [Install]
-WantedBy=sockets.target
+WantedBy=syntrop-sockets.target sockets.target
 EOF
 
   cat <<EOF > "${UNIT_DIR}/routerd.service"
@@ -886,8 +888,6 @@ RestrictSUIDSGID=yes
 LockPersonality=yes
 
 # Directories & Credentials
-RuntimeDirectory=syntrop
-RuntimeDirectoryMode=0755
 ConfigurationDirectory=syntrop
 StateDirectory=routerd
 LogsDirectory=routerd
@@ -926,31 +926,32 @@ activate_subsystem() {
   fi
 
   if [[ "${START_SOCKETS}" == "true" ]]; then
-    log_info "Enabling and starting syntrop-sockets.target..."
-    systemctl enable syntrop-sockets.target
-    systemctl restart syntrop-sockets.target
-    log_ok "syntrop-sockets.target enabled and started."
-
-    # Reset any failed units and ensure all sockets are actively listening
-    local daemons=("toold" "runtimed" "modeld" "inferenced" "contextd" "routerd")
-    for d in "${daemons[@]}"; do
-      systemctl reset-failed "${d}.service" 2>/dev/null || true
-      if systemctl is-active --quiet "${d}.service" 2>/dev/null; then
-        systemctl stop "${d}.service" 2>/dev/null || true
-      fi
-      systemctl restart "${d}.socket" 2>/dev/null || true
+    log_info "Stopping running services to prevent directory cleanup races..."
+    local services=("systemd-sentry" "routerd" "toold" "runtimed" "modeld" "inferenced" "contextd")
+    for s in "${services[@]}"; do
+      systemctl reset-failed "${s}.service" 2>/dev/null || true
     done
-    if systemctl is-active --quiet "systemd-sentry.service" 2>/dev/null || systemctl is-active --quiet "systemd-sentry.socket" 2>/dev/null; then
-      systemctl restart "systemd-sentry.service" 2>/dev/null || true
-    fi
-    systemctl restart "systemd-sentry.socket" 2>/dev/null || true
+    systemctl stop "${services[@]/%/.service}" 2>/dev/null || true
 
-    mkdir -p /run/syntrop
-    ln -sf /run/systemd-sentry/sentry.sock /run/syntrop/io.syntrop.Sentry1 2>/dev/null || true
+    log_info "Applying tmpfiles.d configuration..."
+    systemd-tmpfiles --create /etc/tmpfiles.d/syntrop.conf 2>/dev/null || true
+
+    log_info "Enabling syntrop-sockets.target and socket units..."
+    local sockets=("routerd.socket" "toold.socket" "runtimed.socket" "contextd.socket" "modeld.socket" "systemd-sentry.socket" "inferenced.socket")
+    systemctl enable syntrop-sockets.target "${sockets[@]}"
+
+    log_info "Restarting socket units and syntrop-sockets.target..."
+    systemctl reset-failed "${sockets[@]}" syntrop-sockets.target 2>/dev/null || true
+    systemctl restart "${sockets[@]}" syntrop-sockets.target
+    log_ok "syntrop-sockets.target and activation sockets restarted."
 
     echo ""
     log_bold "Active Varlink and IPC Sockets:"
     systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" "routerd*" --no-pager 2>/dev/null || true
+
+    echo ""
+    log_bold "Verifying Subsystem Status:"
+    "${BIN_DIR}/syntropctl" status || true
   else
     log_info "--no-start specified: skipping socket activation."
   fi
