@@ -354,7 +354,8 @@ preferred_models = ["minimax/MiniMax-M3", "mistral/mistral-large-latest", "lan_o
 
 # Upstream Cloud Providers
 [[providers]]
-name = "minimax"
+id = "minimax"
+name = "MiniMax AI Cloud"
 kind = "minimax"
 base_url = "https://api.minimax.io/v1"
 api_key = "cred:minimax_api_key"
@@ -363,29 +364,33 @@ cost_per_m_out = 0.80
 models = ["MiniMax-Text-01", "MiniMax-M3"]
 
 [[providers]]
-name = "groq"
-kind = "openai_compatible"
+id = "groq"
+name = "Groq LPU"
+kind = "openai"
 base_url = "https://api.groq.com/openai/v1"
 api_key = "${GROQ_API_KEY}"
 models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 [[providers]]
-name = "gemini"
-kind = "openai_compatible"
-base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+id = "gemini"
+name = "Google Gemini"
+kind = "openai"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
 api_key = "${GEMINI_API_KEY}"
 models = ["gemini-2.0-flash"]
 
 # Remote LAN Ollama Servers
 [[providers]]
-name = "lan_ollama_node1"
+id = "lan_ollama_node1"
+name = "LAN Ollama Node 1"
 kind = "ollama"
 base_url = "http://192.168.1.101:11434/v1"
 cost_per_m_in = 0.0
 models = ["deepseek-r1:70b", "qwen2.5:72b"]
 
 [[providers]]
-name = "lan_ollama_node2"
+id = "lan_ollama_node2"
+name = "LAN Ollama Node 2"
 kind = "ollama"
 base_url = "http://192.168.1.102:11434/v1"
 cost_per_m_in = 0.0
