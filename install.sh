@@ -178,8 +178,11 @@ check_system() {
 
   # 6. Linux distribution detection
   if [[ -f /etc/os-release ]]; then
+    # os-release defines VERSION (the OS version); keep the installer version.
+    local installer_version="${VERSION}"
     # shellcheck disable=SC1091
     . /etc/os-release
+    VERSION="${installer_version}"
     DISTRO_ID="${ID:-linux}"
     DISTRO_NAME="${NAME:-Linux}"
     log_ok "Distribution: ${DISTRO_NAME} (${DISTRO_ID})"
@@ -489,7 +492,11 @@ install_binaries() {
       if command -v "${bin}" >/dev/null 2>&1; then
         local src_bin
         src_bin="$(command -v "${bin}")"
-        if [[ "${src_bin}" != "${BIN_DIR}/${bin}" ]]; then
+        # Skip when PATH resolves to the install target itself, including via
+        # a symlinked dir (e.g. /usr/local/sbin -> bin): copying a file onto
+        # itself aborts the installer under set -e. Leaving it missing lets
+        # Phase 2 refresh it from the release bundle instead.
+        if [[ -f "${src_bin}" && "${src_bin}" != "${BIN_DIR}/${bin}" ]] && [[ ! "${src_bin}" -ef "${BIN_DIR}/${bin}" ]]; then
           install -D -p -m 0755 "${src_bin}" "${BIN_DIR}/${bin}"
           log_ok "Installed ${bin} from system PATH (${src_bin})"
           installed=true
