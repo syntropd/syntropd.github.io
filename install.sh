@@ -734,6 +734,18 @@ activate_subsystem() {
     systemctl start syntrop-sockets.target
     log_ok "syntrop-sockets.target enabled and started."
 
+    # Reset any failed units and restart supervisor so updated binaries take effect
+    local daemons=("toold" "runtimed" "modeld" "inferenced" "contextd")
+    for d in "${daemons[@]}"; do
+      systemctl reset-failed "${d}.service" 2>/dev/null || true
+      if systemctl is-active --quiet "${d}.service" 2>/dev/null; then
+        systemctl stop "${d}.service" 2>/dev/null || true
+      fi
+    done
+    if systemctl is-active --quiet "systemd-sentry.service" 2>/dev/null || systemctl is-active --quiet "systemd-sentry.socket" 2>/dev/null; then
+      systemctl restart "systemd-sentry.service" 2>/dev/null || true
+    fi
+
     echo ""
     log_bold "Active Varlink and IPC Sockets:"
     systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" --no-pager 2>/dev/null || true
