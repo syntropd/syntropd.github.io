@@ -357,6 +357,13 @@ default_tier = "fast"
 strategy = "balanced"
 psi_offload_threshold = "Elevated"
 
+[thresholds]
+max_latency_ms = 15000
+psi_memory_threshold = 25.0
+max_retries = 2
+rss_limit_mb = 15
+min_tokens_per_second = 10.0
+
 [tiers.fast]
 preferred_models = ["minimax/MiniMax-Text-01", "groq/llama-3.3-70b-versatile", "gemini/gemini-2.0-flash"]
 
