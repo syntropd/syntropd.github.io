@@ -50,11 +50,12 @@ YELLOW="\033[0;33m"
 RED="\033[0;31m"
 RESET="\033[0m"
 
-log_info()  { echo -e "${CYAN}[INFO]${RESET} $*"; }
-log_ok()    { echo -e "${GREEN}[OK]${RESET} $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${RESET} $*"; }
-log_error() { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
-log_bold()  { echo -e "${BOLD}$*${RESET}"; }
+log_info()   { echo -e "${CYAN}[INFO]${RESET} $*"; }
+log_ok()     { echo -e "${GREEN}[OK]${RESET} $*"; }
+log_warn()   { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+log_error()  { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
+log_prompt() { echo -e "${CYAN}${BOLD}[PROMPT]${RESET} $*"; }
+log_bold()   { echo -e "${BOLD}$*${RESET}"; }
 
 # ----------------- CLI Argument Parsing -----------------
 while [[ $# -gt 0 ]]; do
@@ -995,12 +996,16 @@ activate_subsystem() {
 
   if [[ "${is_interactive}" == "true" && "${DRY_RUN}" != "true" ]]; then
     local setup_resp=""
+    echo ""
+    log_prompt "Configure AI providers and Gemma 4 models now with 'routerctl setup'? [y/N]"
+    echo -n "         Press 'y' to start setup, or press Enter (auto-skipping in 15s): "
     if [[ -t 0 ]]; then
-      read -r -p "Would you like to configure AI providers and models now with 'routerctl setup'? [Y/n] " setup_resp || setup_resp=""
+      read -t 15 -r setup_resp 2>/dev/null || setup_resp="n"
     elif [[ -c /dev/tty ]]; then
-      read -r -p "Would you like to configure AI providers and models now with 'routerctl setup'? [Y/n] " setup_resp < /dev/tty 2>/dev/null || setup_resp=""
+      read -t 15 -r setup_resp < /dev/tty 2>/dev/null || setup_resp="n"
     fi
-    setup_resp="${setup_resp:-Y}"
+    echo ""
+    setup_resp="${setup_resp:-n}"
     if [[ "${setup_resp}" =~ ^[Yy]$ ]]; then
       if [[ -x "${BIN_DIR}/routerctl" ]]; then
         if [[ ! -t 0 && -c /dev/tty ]]; then
@@ -1015,6 +1020,8 @@ activate_subsystem() {
           routerctl setup || true
         fi
       fi
+    else
+      log_info "Skipping setup. You can run 'sudo routerctl setup' anytime."
     fi
   fi
 }
