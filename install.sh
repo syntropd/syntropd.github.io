@@ -25,7 +25,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.0"
+VERSION="0.3.1"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -497,6 +497,52 @@ install_binaries() {
       missing+=("${bin}")
     fi
   done
+
+  # Phase 1.5: Compile missing binaries from local source checkouts.
+  # Only what is missing, nothing more. Builds as the invoking user so we
+  # reuse their cargo cache instead of re-downloading the registry as root.
+  # Tries offline first; falls back to a networked build when deps are absent.
+  if [[ ${#missing[@]} -gt 0 ]] && command -v cargo >/dev/null 2>&1; then
+    local build_user=""
+    if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" && -n "${sudo_home}" && -d "${sudo_home}" ]] && command -v runuser >/dev/null 2>&1; then
+      build_user="${TARGET_USER}"
+    fi
+    local need_build=()
+    for bin in "${missing[@]}"; do
+      local src="${bin}"
+      case "${bin}" in
+        systemd-sentry) src="sentry" ;;
+        routerctl) src="routerd" ;;
+      esac
+      local built=false
+      for root in "${search_roots[@]}"; do
+        [[ -n "${root}" && -f "${root}/${src}/Cargo.toml" ]] || continue
+        local out_bin="${root}/${src}/target/release/${bin}"
+        if [[ ! -x "${out_bin}" ]]; then
+          log_info "Compiling ${bin} from local source (${root}/${src})..."
+          if [[ -n "${build_user}" ]]; then
+            (cd "${root}/${src}" && { runuser -u "${build_user}" -- env "HOME=${sudo_home}" "CARGO_HOME=${sudo_home}/.cargo" cargo build --release --offline -q || runuser -u "${build_user}" -- env "HOME=${sudo_home}" "CARGO_HOME=${sudo_home}/.cargo" cargo build --release -q; }) >/dev/null 2>&1 || true
+          else
+            (cd "${root}/${src}" && { cargo build --release --offline -q || cargo build --release -q; }) >/dev/null 2>&1 || true
+          fi
+        fi
+        if [[ -x "${out_bin}" ]]; then
+          install -D -p -m 0755 "${out_bin}" "${BIN_DIR}/${bin}"
+          log_ok "Installed ${bin} from local source build"
+          built=true
+          break
+        fi
+      done
+      if [[ "${built}" == "false" ]]; then
+        need_build+=("${bin}")
+      fi
+    done
+    if [[ ${#need_build[@]} -gt 0 ]]; then
+      missing=("${need_build[@]}")
+    else
+      missing=()
+    fi
+  fi
 
   # Phase 2: Download precompiled binaries from GitHub Releases
   if [[ ${#missing[@]} -gt 0 ]]; then

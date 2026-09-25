@@ -629,7 +629,7 @@ method TestProvider(
   error: ?string
 )`,
     exampleCmd: `varlinkctl call unix:/run/syntrop/io.syntrop.Router1 io.syntrop.Router1.GetStatus '{}'`,
-    exampleOut: `{\n  "active_requests": 0,\n  "healthy_providers_count": 3,\n  "providers_count": 3,\n  "psi_level": "normal",\n  "psi_memory_some": 0.0,\n  "rss_mb": 9.12,\n  "status": "operational",\n  "total_requests": 428,\n  "uptime_seconds": 8040,\n  "version": "0.3.0"\n}`
+    exampleOut: `{\n  "active_requests": 0,\n  "healthy_providers_count": 3,\n  "providers_count": 3,\n  "psi_level": "normal",\n  "psi_memory_some": 0.0,\n  "rss_mb": 9.12,\n  "status": "operational",\n  "total_requests": 428,\n  "uptime_seconds": 8040,\n  "version": "0.3.1"\n}`
   },
 
   'service': {
