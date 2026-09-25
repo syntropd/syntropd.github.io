@@ -324,8 +324,22 @@ install_binaries() {
 
   local script_dir
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  local search_roots=("${LOCAL_SRC}" "${script_dir}/.." "${script_dir}")
+  local sudo_home=""
+  if [[ -n "${TARGET_USER}" ]]; then
+    sudo_home="$(eval echo "~${TARGET_USER}" 2>/dev/null || echo "")"
+  fi
 
+  local search_roots=(
+    "${LOCAL_SRC}"
+    "${script_dir}/.."
+    "${script_dir}"
+    "${PWD}"
+    "${sudo_home}/Projects/syntropd"
+    "${sudo_home}/Projects/UberMetroid"
+  )
+
+  # Phase 1: Local workspace builds
+  local missing=()
   for bin in "${binaries[@]}"; do
     local installed=false
 
@@ -334,7 +348,6 @@ install_binaries() {
         continue
       fi
 
-      # Check all target/release and target/debug permutations across repos
       local candidate
       for candidate in \
         "${root}/target/release/${bin}" \
@@ -368,18 +381,75 @@ install_binaries() {
     fi
 
     if [[ "${installed}" == "false" ]]; then
-      log_warn "Binary ${bin} not yet built locally; install via \`cargo install ${bin}\`."
+      missing+=("${bin}")
     fi
   done
 
-  # Verify all 9 binaries
+  # Phase 2: Download precompiled binaries from GitHub Releases
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    log_info "Fetching precompiled binaries for ${ARCH} from GitHub Releases (v${VERSION})..."
+    local release_url="https://github.com/syntropd/syntropd/releases/download/v${VERSION}/syntropd-v${VERSION}-${ARCH}-unknown-linux-gnu.tar.gz"
+    local tmp_dir
+    tmp_dir="$(mktemp -d /tmp/syntropd-download.XXXXXX)"
+
+    if curl -fsSL "${release_url}" -o "${tmp_dir}/bundle.tar.gz" 2>/dev/null; then
+      tar -xzf "${tmp_dir}/bundle.tar.gz" -C "${tmp_dir}"
+      for bin in "${missing[@]}"; do
+        if [[ -f "${tmp_dir}/${bin}" && -x "${tmp_dir}/${bin}" ]]; then
+          install -D -p -m 0755 "${tmp_dir}/${bin}" "${BIN_DIR}/${bin}"
+          log_ok "Installed ${bin} from GitHub Release v${VERSION}"
+        fi
+      done
+    else
+      log_warn "GitHub Release asset not available for ${ARCH} or network unreachable."
+    fi
+    rm -rf "${tmp_dir}"
+  fi
+
+  # Phase 3: Cargo crates.io compilation fallback
+  local still_missing=()
+  for bin in "${binaries[@]}"; do
+    if [[ ! -x "${BIN_DIR}/${bin}" ]]; then
+      still_missing+=("${bin}")
+    fi
+  done
+
+  if [[ ${#still_missing[@]} -gt 0 ]] && command -v cargo >/dev/null 2>&1; then
+    log_info "Compiling and installing remaining binaries (${still_missing[*]}) via Cargo from crates.io..."
+    local cargo_packages=()
+    for bin in "${still_missing[@]}"; do
+      case "${bin}" in
+        syntropctl) cargo_packages+=("syntropctl") ;;
+        syntropd) cargo_packages+=("syntropd") ;;
+        sentry|systemd-sentry) cargo_packages+=("syntrop-sentry") ;;
+        inferenced) cargo_packages+=("syntrop-inferenced") ;;
+        modeld) cargo_packages+=("syntrop-modeld") ;;
+        contextd) cargo_packages+=("syntrop-contextd") ;;
+        toold) cargo_packages+=("syntrop-toold") ;;
+        runtimed) cargo_packages+=("syntrop-runtimed") ;;
+      esac
+    done
+    local unique_pkgs=($(echo "${cargo_packages[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+    cargo install --root "${PREFIX}" "${unique_pkgs[@]}" || true
+  fi
+
+  # Final Verification & Gate
+  local final_missing=()
   local verified_count=0
   for bin in "${binaries[@]}"; do
     if [[ -x "${BIN_DIR}/${bin}" ]]; then
       verified_count=$((verified_count + 1))
+    else
+      final_missing+=("${bin}")
     fi
   done
-  log_ok "Verified ${verified_count}/${#binaries[@]} binaries installed in ${BIN_DIR}."
+
+  if [[ ${#final_missing[@]} -gt 0 ]]; then
+    log_error "Failed to install the following required binaries: ${final_missing[*]}"
+    log_error "Please build locally or run: cargo install syntropd"
+    exit 1
+  fi
+  log_ok "Verified all ${verified_count}/${#binaries[@]} binaries installed and executable in ${BIN_DIR}."
 }
 
 # ----------------- Systemd Unit Registration -----------------
