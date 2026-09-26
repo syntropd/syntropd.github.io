@@ -235,15 +235,31 @@ do_uninstall() {
   log_info "Removing binaries from ${BIN_DIR}..."
   rm -f "${BIN_DIR}/syntropctl" \
         "${BIN_DIR}/inferenced" \
+        "${BIN_DIR}/inferenctl" \
         "${BIN_DIR}/modeld" \
+        "${BIN_DIR}/modelctl" \
         "${BIN_DIR}/contextd" \
+        "${BIN_DIR}/contextctl" \
         "${BIN_DIR}/toold" \
+        "${BIN_DIR}/toolctl" \
         "${BIN_DIR}/runtimed" \
+        "${BIN_DIR}/runtimectl" \
         "${BIN_DIR}/sentry" \
         "${BIN_DIR}/systemd-sentry" \
         "${BIN_DIR}/routerd" \
         "${BIN_DIR}/routerctl" \
         "${BIN_DIR}/syntropd"
+
+  if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
+    local user_home
+    user_home="$(eval echo "~${TARGET_USER}" 2>/dev/null || echo "")"
+    if [[ -n "${user_home}" && -d "${user_home}/.local/bin" ]]; then
+      log_info "Removing CLI symlinks from ${user_home}/.local/bin..."
+      for cbin in syntropctl routerctl syntropd inferenctl modelctl contextctl toolctl runtimectl; do
+        rm -f "${user_home}/.local/bin/${cbin}"
+      done
+    fi
+  fi
 
   if [[ "${PURGE}" == "true" ]]; then
     log_info "--purge specified: removing configuration, caches, and system user/group..."
