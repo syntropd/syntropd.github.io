@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.6"
+VERSION="0.3.7"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -250,14 +250,16 @@ do_uninstall() {
         "${BIN_DIR}/systemd-sentry" \
         "${BIN_DIR}/routerd" \
         "${BIN_DIR}/routerctl" \
-        "${BIN_DIR}/syntropd"
+        "${BIN_DIR}/syntropd" \
+        "${BIN_DIR}/syntrop" \
+        "${BIN_DIR}/syn"
 
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     local user_home
     user_home="$(eval echo "~${TARGET_USER}" 2>/dev/null || echo "")"
     if [[ -n "${user_home}" && -d "${user_home}/.local/bin" ]]; then
       log_info "Removing CLI symlinks from ${user_home}/.local/bin..."
-      for cbin in syntropctl routerctl syntropd inferenctl modelctl contextctl toolctl runtimectl; do
+      for cbin in syntropctl routerctl syntropd syntrop syn inferenctl modelctl contextctl toolctl runtimectl; do
         rm -f "${user_home}/.local/bin/${cbin}"
       done
     fi
@@ -453,7 +455,7 @@ EOF
 install_binaries() {
   log_info "Installing suite binaries to ${BIN_DIR}..."
 
-  local binaries=("syntropctl" "inferenced" "inferenctl" "modeld" "modelctl" "contextd" "contextctl" "toold" "toolctl" "runtimed" "runtimectl" "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd")
+  local binaries=("syntropctl" "inferenced" "inferenctl" "modeld" "modelctl" "contextd" "contextctl" "toold" "toolctl" "runtimed" "runtimectl" "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd" "syntrop")
 
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would install binaries: ${binaries[*]} into ${BIN_DIR}."
@@ -557,6 +559,7 @@ install_binaries() {
         contextctl) src="contextd" ;;
         toolctl) src="toold" ;;
         runtimectl) src="runtimed" ;;
+        syntrop) src="syntropd" ;;
       esac
       local built=false
       for root in "${search_roots[@]}"; do
@@ -624,6 +627,7 @@ install_binaries() {
       case "${bin}" in
         syntropctl) cargo_packages+=("syntropctl") ;;
         syntropd) cargo_packages+=("syntropd") ;;
+        syntrop) cargo_packages+=("syntropd") ;;
         sentry|systemd-sentry) cargo_packages+=("syntrop-sentry") ;;
         inferenced) cargo_packages+=("syntrop-inferenced") ;;
         modeld) cargo_packages+=("syntrop-modeld") ;;
@@ -660,6 +664,10 @@ install_binaries() {
   fi
   log_ok "Verified all ${verified_count}/${#binaries[@]} binaries installed and executable in ${BIN_DIR}."
 
+  # Short alias for the front door (revocable; syntrop stays canonical).
+  ln -sf "${BIN_DIR}/syntrop" "${BIN_DIR}/syn"
+  log_ok "Linked ${BIN_DIR}/syn -> syntrop."
+
   # Purge daemon binaries from ~/.local/bin to prevent PATH shadowing, symlink client CLIs only
   if [[ -n "${sudo_home}" && -d "${sudo_home}/.local/bin" ]]; then
     local daemon_bins=("routerd" "systemd-sentry" "sentry" "inferenced" "modeld" "contextd" "toold" "runtimed")
@@ -667,7 +675,7 @@ install_binaries() {
       rm -f "${sudo_home}/.local/bin/${dbin}"
     done
 
-    local cli_bins=("syntropctl" "routerctl" "syntropd" "inferenctl" "modelctl" "contextctl" "toolctl" "runtimectl")
+    local cli_bins=("syntropctl" "routerctl" "syntropd" "syntrop" "syn" "inferenctl" "modelctl" "contextctl" "toolctl" "runtimectl")
     for cbin in "${cli_bins[@]}"; do
       if [[ -f "${BIN_DIR}/${cbin}" ]]; then
         ln -sf "${BIN_DIR}/${cbin}" "${sudo_home}/.local/bin/${cbin}"
