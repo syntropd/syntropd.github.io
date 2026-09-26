@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.5"
+VERSION="0.3.6"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"

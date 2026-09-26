@@ -433,12 +433,21 @@ cloud-openai      openai   hard    HEALTHY   0.5      245.0ms    gpt-4o, o3-mini
         <span>$ routerctl models</span>
         <button class="copy-btn">Copy</button>
       </div>
-      <pre><code>AVAILABLE ROUTED MODELS:
-  - router:fast (auto-routed to lowest-latency fast tier provider)
-  - router:hard (auto-routed to high-capability reasoning tier provider)
-  - qwen2.5-coder-7b (local-runtimed)
-  - deepseek-r1:8b (lan-ollama)
-  - gpt-4o (cloud-openai)</code></pre>
+      <pre><code>Connected Model
+  qwen2.5-coder-7b
+  deepseek-r1:8b
+  gpt-4o</code></pre>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0.5rem 0;">
+        Only connected provider models are listed. Routing aliases
+        (<code>router:fast</code>, <code>router:hard</code>, <code>router:auto</code>)
+        stay valid request targets and still appear in <code>route</code> and <code>/v1/models</code>.
+      </p>
+
+      <div class="code-header" style="margin-top: 1rem;">
+        <span>$ routerctl default gpt-4o</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>default → gpt-4o (fast + hard)</code></pre>
 
       <div class="code-header" style="margin-top: 1rem;">
         <span>$ routerctl route --model router:fast --tokens 2048</span>
