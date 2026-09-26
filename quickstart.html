@@ -226,12 +226,30 @@ cargo install routerctl</code></pre>
       </div>
 
       <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">One front door: <code>syn</code></h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+          Every tool is reachable as <code>syn &lt;namespace&gt; &lt;command&gt;</code>
+          (<code>syntrop</code> works identically). Namespaces: <code>router</code>,
+          <code>runtime</code>, <code>store</code>, <code>hardware</code>,
+          <code>context</code>, <code>tools</code>, <code>fleet</code>, <code>system</code>.
+          Run <code>syn</code> with no arguments for the map.
+        </p>
+        <div class="code-header">
+          <span>$ syn router models</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <pre><code>Connected Model
+  MiniMax-Text-01
+  MiniMax-M3</code></pre>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 3: Run the syntropctl Connectivity Probe</h3>
         <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
           Test end-to-end communication and measure socket dispatch latency:
         </p>
         <div class="code-header">
-          <span>$ syntropctl status</span>
+          <span>$ syn fleet status</span>
           <button class="copy-btn">Copy</button>
         </div>
         <pre><code>DAEMON       SOCKET                                  STATE    LATENCY   INTERFACES
