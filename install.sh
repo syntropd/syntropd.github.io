@@ -19,7 +19,9 @@
 #   --purge             Used with --uninstall to also purge configs, caches, user/group
 #   --no-start          Install units but do not enable or start sockets
 #   --user <USER>       Enroll specific user into 'syntrop' group (defaults to SUDO_USER)
-#   --local <PATH>      Install from local project directories / checkout
+#   --local <PATH>      Install from a local source checkout instead of the
+#                       GitHub release bundle (default); PATH is the projects
+#                       root containing each daemon directory
 #   -h, --help          Show this help message
 # ==============================================================================
 
@@ -89,7 +91,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h|--help)
-      sed -n '2,24p' "$0" | sed 's/^# //'
+      sed -n '2,26p' "$0" | sed 's/^# //'
       exit 0
       ;;
     *)
@@ -465,6 +467,14 @@ install_binaries() {
     sudo_home="$(eval echo "~${TARGET_USER}" 2>/dev/null || echo "")"
   fi
 
+  # Local checkouts are strictly opt-in (--local <PATH>). The default path
+  # installs the versioned GitHub release bundle, so a curl-pipe install
+  # always yields the blessed bits — never whatever stale target/ dirs
+  # happen to exist on the machine.
+  if [[ -z "${LOCAL_SRC}" ]]; then
+    log_info "Using precompiled release bundle v${VERSION} (pass --local <PATH> to install from source checkouts)."
+  fi
+
   local search_roots=(
     "${LOCAL_SRC}"
     "${script_dir}/.."
@@ -474,13 +484,13 @@ install_binaries() {
     "${sudo_home}/Projects/UberMetroid"
   )
 
-  # Phase 1: Local workspace builds
+  # Phase 1: Local workspace builds (--local only)
   local missing=()
   for bin in "${binaries[@]}"; do
     local installed=false
 
     for root in "${search_roots[@]}"; do
-      if [[ -z "${root}" || ! -d "${root}" ]]; then
+      if [[ -z "${LOCAL_SRC}" || -z "${root}" || ! -d "${root}" ]]; then
         continue
       fi
 
@@ -503,8 +513,9 @@ install_binaries() {
       done
     done
 
-    if [[ "${installed}" == "false" ]]; then
-      # If binary already exists in PATH or current install
+    if [[ "${installed}" == "false" && -n "${LOCAL_SRC}" ]]; then
+      # If binary already exists in PATH or current install (--local only:
+      # the default path refreshes everything from the release bundle)
       if command -v "${bin}" >/dev/null 2>&1; then
         local src_bin
         src_bin="$(command -v "${bin}")"
@@ -526,10 +537,11 @@ install_binaries() {
   done
 
   # Phase 1.5: Compile missing binaries from local source checkouts.
-  # Only what is missing, nothing more. Builds as the invoking user so we
-  # reuse their cargo cache instead of re-downloading the registry as root.
-  # Tries offline first; falls back to a networked build when deps are absent.
-  if [[ ${#missing[@]} -gt 0 ]] && command -v cargo >/dev/null 2>&1; then
+  # --local only. Only what is missing, nothing more. Builds as the
+  # invoking user so we reuse their cargo cache instead of re-downloading
+  # the registry as root. Tries offline first; falls back to a networked
+  # build when deps are absent.
+  if [[ -n "${LOCAL_SRC}" && ${#missing[@]} -gt 0 ]] && command -v cargo >/dev/null 2>&1; then
     local build_user=""
     if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" && -n "${sudo_home}" && -d "${sudo_home}" ]] && command -v runuser >/dev/null 2>&1; then
       build_user="${TARGET_USER}"
