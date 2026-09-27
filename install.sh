@@ -35,7 +35,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.12"
+VERSION="0.3.13"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -433,27 +433,6 @@ rss_limit_mb = 15
 min_tokens_per_second = 10.0
 
 # Local-only: cloud providers were removed. Setup enables what it verifies.
-
-# Remote LAN Ollama Servers
-[[providers]]
-enabled = false
-id = "lan_ollama_node1"
-name = "LAN Ollama Node 1"
-kind = "ollama"
-base_url = "http://192.168.1.101:11434/v1"
-tier = "fast"
-weight = 1.1
-timeout_ms = 20000
-
-[[providers]]
-enabled = false
-id = "lan_ollama_node2"
-name = "LAN Ollama Node 2"
-kind = "ollama"
-base_url = "http://192.168.1.102:11434/v1"
-tier = "hard"
-weight = 1.1
-timeout_ms = 45000
 
 # Local syntrop Varlink Bridge (Hardware Accelerated)
 [[providers]]
@@ -1278,7 +1257,7 @@ activate_subsystem() {
     log_bold " NEXT STEP (required): connect your local models"
     log_bold "------------------------------------------------------------"
     echo -e "  Run this command now: ${BOLD}sudo syn router setup${RESET}"
-    echo "  It finds local Ollama + model files and enables what answers."
+    echo "  It finds your model files and connects them to the front door."
     echo ""
   fi
 }
