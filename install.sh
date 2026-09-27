@@ -1273,10 +1273,7 @@ activate_subsystem() {
   echo "  syntropctl explain <unit>"
   echo ""
   echo ""
-  if [[ "${ROUTER_WIRED}" == "true" ]]; then
-    echo "You can add more providers at any time: sudo syn router setup"
-    echo ""
-  else
+  if [[ "${ROUTER_WIRED}" != "true" ]]; then
     log_bold "------------------------------------------------------------"
     log_bold " NEXT STEP (required): connect your local models"
     log_bold "------------------------------------------------------------"
