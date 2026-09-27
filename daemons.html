@@ -257,22 +257,23 @@ ReadOnlyPaths=/usr</code></pre>
     <article id="runtimed" class="diagram-card">
       <div class="diagram-header">
         <div>
-          <h2>runtimed — Pure-Rust Neural Inference &amp; Embeddings</h2>
-          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Runtime1</code> • Interface: <code>io.syntrop.Runtime1</code></p>
+          <h2>runtimed — Owned-Engine Neural Inference, Vision &amp; Embeddings</h2>
+          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Runtime1</code> • Interface: <code>io.syntrop.Runtime1</code> • v0.4.0</p>
         </div>
-        <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(244,63,94,0.3);">ZERO-C DEPENDENCIES</span>
+        <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(244,63,94,0.3);">ZERO-C DEPENDENCIES (CPU BUILD)</span>
       </div>
 
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
-        <code>runtimed</code> provides pure-Rust GGUF model execution and normalized vector embedding generation without linking against dynamic C runtime libraries (zero <code>libstdc++.so</code>, zero <code>libgomp.so</code>). It is designed for sub-15ms socket startup and rapid deterministic inference during system outages.
+        <code>runtimed</code> runs its own from-scratch Rust inference engine — no llama.cpp, no cloud. It executes GGUF weights (Q8_0, Q4_K family, F16) across Gemma4 and Qwen2 architectures with differential oracle proofs, plus a vision tower for image input, live LoRA fusion, SHA256 weight pins, and normalized vector embeddings. The default CPU build links no dynamic C runtime libraries (zero <code>libstdc++.so</code>, zero <code>libgomp.so</code>); the optional <code>cuda</code> feature adds NVIDIA acceleration (F16-resident weights, F32-exact compute, one GPU per daemon) linking only the NVIDIA driver libraries. Fleet routers steer it via <code>GetLoad</code> (free slots, resident bytes).
       </p>
 
       <div class="code-header">
-        <span>ldd verification (Zero Dynamic C Runtime)</span>
+        <span>ldd verification (CPU build: Zero Dynamic C Runtime)</span>
         <button class="copy-btn">Copy</button>
       </div>
-      <pre><code>$ ldd /usr/bin/runtimed
+      <pre><code>$ ldd /usr/local/bin/runtimed
         linux-vdso.so.1 (0x00007ffe341fa000)
+        libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f59d4d9b000)
         libm.so.6 => /lib64/libm.so.6 (0x00007f59d4c70000)
         libc.so.6 => /lib64/libc.so.6 (0x00007f59d4a8e000)
         /lib64/ld-linux-x86-64.so.2 (0x00007f59d4d9b000)

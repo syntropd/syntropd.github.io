@@ -231,12 +231,12 @@
             <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">RUNTIME</span>
           </div>
           <p class="daemon-desc">
-            Pure-Rust neural model inference and embedding engine. In-process token generation and embedding computation with zero dynamic C dependencies, lazy socket activation, and zero background idle memory.
+            Owned-engine neural inference: text, vision, and embeddings with zero dynamic C dependencies in the CPU build, lazy socket activation, and zero background idle memory.
           </p>
           <ul class="daemon-features">
-            <li>GGUF model loader &amp; token generation</li>
+            <li>GGUF engine: Gemma4/Qwen2, vision, LoRA</li>
             <li>128-dim normalized semantic embeddings</li>
-            <li>DynamicUser unprivileged isolation</li>
+            <li>syntrop-runtime unprivileged isolation</li>
             <li>Socket-activated lifecycle with clean exit</li>
           </ul>
           <div class="daemon-footer">

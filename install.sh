@@ -311,6 +311,18 @@ provision_system() {
     log_ok "Created system user: syntrop"
   fi
 
+  # 2c. System user: syntrop-runtime (for runtimed; video/render for GPUs)
+  if ! id -u syntrop-runtime >/dev/null 2>&1; then
+    useradd -r -s /usr/sbin/nologin -g syntrop -d /var/lib/models -c "Syntropd Runtime Daemon" syntrop-runtime 2>/dev/null || \
+    useradd -r -s /bin/false -g syntrop -d /var/lib/models -c "Syntropd Runtime Daemon" syntrop-runtime
+    log_ok "Created system user: syntrop-runtime"
+  fi
+  for g in video render; do
+    if getent group "$g" >/dev/null 2>&1 && ! id -nG syntrop-runtime 2>/dev/null | grep -qw "$g"; then
+      usermod -aG "$g" syntrop-runtime 2>/dev/null || true
+    fi
+  done
+
   # 3. User enrollment for unprivileged IPC socket access
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     if id "${TARGET_USER}" >/dev/null 2>&1; then
@@ -757,14 +769,44 @@ EOF
 Description=Syntropd Headless Model Execution and Tensor Generation Daemon
 Documentation=https://github.com/syntropd/runtimed
 Requires=runtimed.socket
-After=runtimed.socket
+After=network.target runtimed.socket
 
 [Service]
 Type=notify
+User=syntrop-runtime
+Group=syntrop
 ExecStart=${BIN_DIR}/runtimed
-ReadWritePaths=/var/lib/models /run/syntrop
 Restart=on-failure
 RestartSec=2s
+WatchdogSec=30s
+
+# Sandboxing and device permissions (mirrors runtimed/systemd/runtimed.service).
+# No RuntimeDirectory: /run/syntrop is owned by the socket unit and shared
+# with the whole fleet; a service-level one would wipe every socket on restart.
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+PrivateTmp=true
+MemoryDenyWriteExecute=false
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+ReadWritePaths=/var/lib/models /run/syntrop
+# Any DeviceAllow flips DevicePolicy to allow-listed; path globs do NOT work,
+# only char-<group>. Missing families surface as CUDA_ERROR_NO_DEVICE.
+DeviceAllow=char-nvidia* rw
+DeviceAllow=char-drm rw
+DeviceAllow=char-accel rw
+
+# Resource limits (higher memory cap for tensor inference)
+MemoryHigh=8G
+MemoryMax=16G
+TasksMax=64
 EOF
 
   # 5. inferenced.socket & inferenced.service
