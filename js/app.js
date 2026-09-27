@@ -129,7 +129,7 @@ const ARCH_NODE_DATA = {
     interface: 'io.syntrop.Router1',
     kernel: 'Dual-stack TCP (32768), Unix domain sockets, kernel PSI (/proc/pressure/memory)',
     privilege: 'Slice=ai.slice, MemoryHigh=24M, MemoryMax=32M, ProtectSystem=strict, NoNewPrivileges=yes',
-    desc: 'Intelligent multi-provider LLM reverse proxy and dynamic scoring router. Mediates between client workloads (sentry triage, user requests) and compute destinations (local runtimed/inferenced, LAN Ollama clusters, and cloud LLM APIs). Incorporates kernel PSI pressure feedback to offload execution when host memory spikes.',
+    desc: 'Intelligent multi-provider LLM reverse proxy and dynamic scoring router. Mediates between client workloads (sentry triage, user requests) and compute destinations (local runtimed/inferenced, LAN runtimed peers, and cloud LLM APIs). Incorporates kernel PSI pressure feedback to offload execution when host memory spikes.',
     methods: ['GetStatus', 'ListProviders', 'ListModels', 'RouteRequest', 'TestProvider']
   }
 };

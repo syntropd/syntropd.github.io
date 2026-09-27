@@ -358,7 +358,7 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
       </div>
 
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
-        <code>routerd</code> provides high-performance, intelligent model routing and reverse proxying across heterogeneous backends (local <code>runtimed</code>/<code>inferenced</code>, LAN Ollama instances, and external cloud LLM APIs). It incorporates real-time kernel Pressure Stall Information (PSI) and VRAM monitoring to prevent host memory starvation by seamlessly spilling compute loads to remote tiers.
+        <code>routerd</code> provides high-performance, intelligent model routing and reverse proxying across heterogeneous backends (local <code>runtimed</code>/<code>inferenced</code>, LAN runtimed peers, and external cloud LLM APIs). It incorporates real-time kernel Pressure Stall Information (PSI) and VRAM monitoring to prevent host memory starvation by seamlessly spilling compute loads to remote tiers.
       </p>
 
       <div class="table-wrap">
@@ -388,7 +388,7 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
             </tr>
             <tr>
               <td><strong>Dual-Stack Wire Ingress</strong></td>
-              <td>Listens on dual-stack TCP <code>127.0.0.1:32768</code> / <code>[::1]:32768</code> and local Unix domain socket <code>/run/syntrop/router.sock</code> for standard OpenAI/Ollama API compatibility.</td>
+              <td>Listens on dual-stack TCP <code>127.0.0.1:32768</code> / <code>[::1]:32768</code> and local Unix domain socket <code>/run/syntrop/router.sock</code> for standard OpenAI API compatibility.</td>
               <td><code>RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6</code></td>
             </tr>
           </tbody>
@@ -410,7 +410,7 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
      Varlink IPC:  /run/syntrop/io.syntrop.Router1
      Memory RSS:   9.12 MiB (MemoryHigh: 24M, MemoryMax: 32M)
      Kernel PSI:   Memory 0.0% some (normal)
-     Providers:    3 configured, 3 healthy (local-ollama, lan-ollama, local-vllm)
+     Providers:    3 configured, 3 healthy (runtimed-local, lan-runtimed, local-vllm)
      Total Reqs:   428 served (0 routing errors)</code></pre>
 
       <div class="code-header" style="margin-top: 1rem;">
@@ -418,15 +418,15 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
         <button class="copy-btn">Copy</button>
       </div>
       <pre><code>PROVIDER ID       KIND     TIER    STATUS    WEIGHT   LATENCY    MODELS
-local-runtimed    native   fast    HEALTHY   1.0      12.4ms     qwen2.5-coder-7b
-lan-ollama        ollama   fast    HEALTHY   0.8      48.2ms     deepseek-r1:8b, llama3.2:3b
+runtimed-local    runtimed fast    HEALTHY   1.0      12.4ms     qwen2.5-coder-7b
+lan-runtimed      runtimed fast    HEALTHY   0.8      48.2ms     gemma4:e2b, qwen2.5:7b
 local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code></pre>
 
       <div class="code-header" style="margin-top: 1rem;">
-        <span>$ routerctl test local-runtimed</span>
+        <span>$ routerctl test runtimed-local</span>
         <button class="copy-btn">Copy</button>
       </div>
-      <pre><code>[TEST] Probing provider 'local-runtimed' at unix:/run/syntrop/io.syntrop.Runtime1...
+      <pre><code>[TEST] Probing provider 'runtimed-local' at unix:/run/syntrop/io.syntrop.Runtime1...
 [OK] Provider response received in 14.2ms.
 [OK] Health check passed: HTTP 200 OK (models: 1, state: ready)</code></pre>
 
@@ -436,7 +436,7 @@ local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code
       </div>
       <pre><code>Connected Model
   qwen2.5-coder-7b
-  deepseek-r1:8b
+  gemma4:e2b
   gemma4:e4b</code></pre>
       <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0.5rem 0;">
         Only connected provider models are listed. Routing aliases
@@ -455,9 +455,9 @@ local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code
         <button class="copy-btn">Copy</button>
       </div>
       <pre><code>ROUTING DECISION CANDIDATES:
-  1. local-runtimed / qwen2.5-coder-7b  [SCORE: 96.4] Speed: 98.0  Cost: 100.0  Cap: 90.0  (Selected)
-  2. lan-ollama / deepseek-r1:8b        [SCORE: 81.2] Speed: 72.0  Cost: 100.0  Cap: 75.0
-  3. local-vllm / qwen3:32b              [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
+  1. runtimed-local / qwen2.5-coder-7b  [SCORE: 96.4] Speed: 98.0  Cost: 100.0  Cap: 90.0  (Selected)
+  2. lan-runtimed / gemma4:e2b          [SCORE: 81.2] Speed: 72.0  Cost: 100.0  Cap: 75.0
+  3. local-vllm / qwen3:32b             [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
 
       <div class="code-header" style="margin-top: 1.25rem;">
         <span>systemd/routerd.service</span>
