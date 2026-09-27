@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.7"
+VERSION="0.3.8"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -375,11 +375,6 @@ varlink_socket = "/run/syntrop/io.syntrop.Router1"
 inferenced_socket = "/run/syntrop/io.syntrop.Inference1"
 log_level = "info"
 
-[routing]
-default_tier = "fast"
-strategy = "balanced"
-psi_offload_threshold = "Elevated"
-
 [thresholds]
 max_latency_ms = 15000
 psi_memory_threshold = 25.0
@@ -387,42 +382,7 @@ max_retries = 2
 rss_limit_mb = 15
 min_tokens_per_second = 10.0
 
-[tiers.fast]
-preferred_models = ["minimax/MiniMax-Text-01", "groq/llama-3.3-70b-versatile", "gemini/gemini-2.0-flash"]
-
-[tiers.hard]
-min_context_window = 32768
-preferred_models = ["minimax/MiniMax-M3", "mistral/mistral-large-latest", "lan_ollama_node1/deepseek-r1:70b"]
-
-# Upstream Cloud Providers
-[[providers]]
-enabled = false
-id = "minimax"
-name = "MiniMax AI Cloud"
-kind = "minimax"
-base_url = "https://api.minimax.io/v1"
-api_key = "cred:minimax_api_key"
-cost_per_m_in = 0.20
-cost_per_m_out = 0.80
-models = ["MiniMax-Text-01", "MiniMax-M3"]
-
-[[providers]]
-enabled = false
-id = "groq"
-name = "Groq LPU"
-kind = "openai"
-base_url = "https://api.groq.com/openai/v1"
-api_key = "${GROQ_API_KEY}"
-models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
-
-[[providers]]
-enabled = false
-id = "gemini"
-name = "Google Gemini"
-kind = "openai"
-base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
-api_key = "${GEMINI_API_KEY}"
-models = ["gemini-2.0-flash"]
+# Local-only: cloud providers were removed. Setup enables what it verifies.
 
 # Remote LAN Ollama Servers
 [[providers]]
@@ -431,8 +391,9 @@ id = "lan_ollama_node1"
 name = "LAN Ollama Node 1"
 kind = "ollama"
 base_url = "http://192.168.1.101:11434/v1"
-cost_per_m_in = 0.0
-models = ["deepseek-r1:70b", "qwen2.5:72b"]
+tier = "fast"
+weight = 1.1
+timeout_ms = 20000
 
 [[providers]]
 enabled = false
@@ -440,8 +401,20 @@ id = "lan_ollama_node2"
 name = "LAN Ollama Node 2"
 kind = "ollama"
 base_url = "http://192.168.1.102:11434/v1"
-cost_per_m_in = 0.0
-models = ["llama3.2:latest", "qwen2.5-coder:7b"]
+tier = "hard"
+weight = 1.1
+timeout_ms = 45000
+
+# Local syntrop Varlink Bridge (Hardware Accelerated)
+[[providers]]
+enabled = false
+id = "syntrop-local"
+name = "Syntrop Local Inferenced Broker"
+kind = "varlink"
+base_url = "/run/syntrop/io.syntrop.Inference1"
+tier = "fast"
+weight = 1.3
+timeout_ms = 10000
 EOF
     chown root:syntrop "${CONFIG_DIR}/routerd.toml" 2>/dev/null || true
     chmod 0640 "${CONFIG_DIR}/routerd.toml" 2>/dev/null || true
@@ -1087,10 +1060,10 @@ activate_subsystem() {
   echo ""
   echo ""
   log_bold "------------------------------------------------------------"
-  log_bold " NEXT STEP (required): set up your AI provider"
+  log_bold " NEXT STEP (required): connect your local models"
   log_bold "------------------------------------------------------------"
-  echo -e "  Run this command now: ${BOLD}sudo routerctl setup${RESET}"
-  echo "  It walks you through API keys and models."
+  echo -e "  Run this command now: ${BOLD}sudo syn router setup${RESET}"
+  echo "  It finds local Ollama + model files and enables what answers."
   echo ""
 }
 

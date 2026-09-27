@@ -301,7 +301,7 @@ CAS Storage Quota: 8.05 GiB / 32.00 GiB (25.1% utilized)</code></pre>
       <pre><code>PROVIDER ID       KIND     TIER    STATUS    WEIGHT   LATENCY    MODELS
 local-runtimed    native   fast    HEALTHY   1.0      12.4ms     qwen2.5-coder-7b
 lan-ollama        ollama   fast    HEALTHY   0.8      48.2ms     deepseek-r1:8b, llama3.2:3b
-cloud-openai      openai   hard    HEALTHY   0.5      245.0ms    gpt-4o, o3-mini</code></pre>
+local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code></pre>
 
       <div class="code-header" style="margin-top: 1rem;">
         <span>$ routerctl test local-runtimed</span>
@@ -319,7 +319,7 @@ cloud-openai      openai   hard    HEALTHY   0.5      245.0ms    gpt-4o, o3-mini
       <pre><code>ROUTING DECISION CANDIDATES:
   1. local-runtimed / qwen2.5-coder-7b  [SCORE: 96.4] Speed: 98.0  Cost: 100.0  Cap: 90.0  (Selected)
   2. lan-ollama / deepseek-r1:8b        [SCORE: 81.2] Speed: 72.0  Cost: 100.0  Cap: 75.0
-  3. cloud-openai / gpt-4o              [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
+  3. local-vllm / qwen3:32b              [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
     </section>
 
     <!-- systemd Unit Drop-In Integration -->
