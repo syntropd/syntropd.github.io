@@ -23,7 +23,9 @@
 #                       GitHub release bundle (default); PATH is the projects
 #                       root containing each daemon directory
 #   --with-gemma        Download the Gemma 4 E2B brain, Q4 (3.1 GB). This is
-#                       the default; the install ships a working brain.
+#                       the default on machines with 30+ GB RAM; smaller
+#                       machines get Qwen automatically unless this flag is
+#                       given explicitly (which always wins, with a warning).
 #   --with-starter-model Download the tiny Qwen 0.5B starter model (~700 MB).
 #   --with-vision       Download the Gemma vision file for picture
 #                       questions (~1 GB).
@@ -33,7 +35,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.11"
+VERSION="0.3.12"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -53,6 +55,8 @@ WITH_GEMMA=true
 WITH_STARTER=false
 WITH_VISION=false
 ROUTER_WIRED=false
+EXPLICIT_GEMMA=false
+DOWNGRADED_TO_QWEN=false
 
 # Colors
 BOLD="\033[1m"
@@ -102,6 +106,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-gemma)
       WITH_GEMMA=true
+      EXPLICIT_GEMMA=true
       shift
       ;;
     --with-starter-model)
@@ -742,6 +747,27 @@ install_models() {
     return 0
   fi
 
+  # Brain fit: the CPU engine holds weights as F32, so the 5B Gemma needs
+  # about 28 GB of RAM to load (fleet binaries are CPU-only). Small
+  # machines get Qwen instead of a brain they could never run — unless the
+  # operator explicitly insisted on Gemma, which is honored with a warning.
+  if [[ "${WITH_GEMMA}" == "true" ]]; then
+    # TEST_MEM_KB overrides reading for the installer test only.
+    local mem_kb="${TEST_MEM_KB:-$(awk '/MemTotal/ {print $2}' /proc/meminfo)}"
+    if [[ "${mem_kb}" -ge 31457280 ]]; then
+      log_info "Brain fit: ${mem_kb} kB RAM — Gemma 4 E2B fits."
+    elif [[ "${EXPLICIT_GEMMA}" == "true" ]]; then
+      log_warn "Brain fit: only ${mem_kb} kB RAM; Gemma needs ~30 GB."
+      log_warn "Proceeding because --with-gemma was explicit; expect load failure."
+    else
+      log_warn "Brain fit: ${mem_kb} kB RAM is short of Gemma's ~30 GB need."
+      log_warn "Installing the Qwen starter brain instead (pass --with-gemma to override)."
+      WITH_GEMMA=false
+      WITH_STARTER=true
+      DOWNGRADED_TO_QWEN=true
+    fi
+  fi
+
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would download models into ${MODEL_DIR}/gguf:"
     if [[ "${WITH_GEMMA}" == "true" ]]; then log_info "[DRY-RUN]   gemma-4-E2B-it-Q4_K_M.gguf (3.1 GB)"; fi
@@ -788,6 +814,15 @@ wire_router() {
   if "${BIN_DIR}/routerctl" setup --auto </dev/null; then
     ROUTER_WIRED=true
     log_ok "Router wired to runtimed."
+    if [[ "${DOWNGRADED_TO_QWEN}" == "true" && -s "${MODEL_DIR}/gguf/qwen2.5-0.5b-instruct-q8_0.gguf" ]]; then
+      # Small machine: Gemma may sit on disk from an earlier run, but only
+      # Qwen can load here — pin it so the front door answers.
+      if "${BIN_DIR}/routerctl" default qwen2.5-0.5b-instruct-q8_0; then
+        log_ok "Default brain pinned to Qwen (fits this machine)."
+      else
+        log_warn "Could not pin the Qwen default; run 'routerctl default qwen2.5-0.5b-instruct-q8_0'."
+      fi
+    fi
   else
     log_warn "Automatic router wiring failed; run 'sudo syn router setup' by hand."
   fi
@@ -923,9 +958,10 @@ DeviceAllow=char-nvidia* rw
 DeviceAllow=char-drm rw
 DeviceAllow=char-accel rw
 
-# Resource limits (higher memory cap for tensor inference)
-MemoryHigh=8G
-MemoryMax=16G
+# Resource limits: the 5B engine holds ~21G F32 on CPU at load peak, so
+# the ceiling must clear it (smaller brains never approach these).
+MemoryHigh=24G
+MemoryMax=32G
 TasksMax=64
 EOF
 
