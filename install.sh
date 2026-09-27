@@ -33,7 +33,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.10"
+VERSION="0.3.11"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -52,6 +52,7 @@ TARGET_USER="${SUDO_USER:-}"
 WITH_GEMMA=true
 WITH_STARTER=false
 WITH_VISION=false
+ROUTER_WIRED=false
 
 # Colors
 BOLD="\033[1m"
@@ -771,6 +772,27 @@ install_models() {
   log_ok "Model provisioning complete."
 }
 
+wire_router() {
+  # Point the front door at the installed brain. Runs after sockets are
+  # live so setup can verify the engine answers. Never fatal: on failure
+  # the closing message falls back to the manual setup step.
+  if ! compgen -G "${MODEL_DIR}/gguf/*.gguf" > /dev/null; then
+    log_info "No model files in ${MODEL_DIR}/gguf; skipping router wiring."
+    return 0
+  fi
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    log_info "[DRY-RUN] Would run: routerctl setup --auto (wire front door to runtimed)."
+    return 0
+  fi
+  log_info "Wiring the front door to the installed brain..."
+  if "${BIN_DIR}/routerctl" setup --auto </dev/null; then
+    ROUTER_WIRED=true
+    log_ok "Router wired to runtimed."
+  else
+    log_warn "Automatic router wiring failed; run 'sudo syn router setup' by hand."
+  fi
+}
+
 # ----------------- Systemd Unit Registration -----------------
 register_units() {
   log_info "Registering systemd units into ${UNIT_DIR}..."
@@ -1146,6 +1168,9 @@ activate_subsystem() {
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Pre-flight verification completed successfully."
     log_ok "[DRY-RUN] System is fully compatible with syntropd."
+    if [[ "${START_SOCKETS}" == "true" ]]; then
+      wire_router
+    fi
     return 0
   fi
 
@@ -1176,6 +1201,9 @@ activate_subsystem() {
     echo ""
     log_bold "Verifying Subsystem Status:"
     "${BIN_DIR}/syntropctl" status || true
+
+    echo ""
+    wire_router
   else
     log_info "--no-start specified: skipping socket activation."
   fi
@@ -1188,7 +1216,12 @@ activate_subsystem() {
   echo "  syntropctl status"
   echo "  syntropd status"
   echo ""
-  if [[ -s "${MODEL_DIR}/gguf/gemma-4-E2B-it-Q4_K_M.gguf" ]]; then
+  if [[ "${ROUTER_WIRED}" == "true" ]]; then
+    echo "System ready. Ask anything:"
+    echo "  syn \"Say hello in one sentence.\""
+    echo "  runtimectl generate -m gemma-4-E2B-it-Q4_K_M \"Say hello in one sentence.\""
+    echo ""
+  elif [[ -s "${MODEL_DIR}/gguf/gemma-4-E2B-it-Q4_K_M.gguf" ]]; then
     echo "A ready brain is installed (Gemma 4 E2B). Try it:"
     echo "  runtimectl generate -m gemma-4-E2B-it-Q4_K_M \"Say hello in one sentence.\""
     echo ""
@@ -1204,12 +1237,17 @@ activate_subsystem() {
   echo "  syntropctl explain <unit>"
   echo ""
   echo ""
-  log_bold "------------------------------------------------------------"
-  log_bold " NEXT STEP (required): connect your local models"
-  log_bold "------------------------------------------------------------"
-  echo -e "  Run this command now: ${BOLD}sudo syn router setup${RESET}"
-  echo "  It finds local Ollama + model files and enables what answers."
-  echo ""
+  if [[ "${ROUTER_WIRED}" == "true" ]]; then
+    echo "Later additions (Ollama, custom endpoints): sudo syn router setup"
+    echo ""
+  else
+    log_bold "------------------------------------------------------------"
+    log_bold " NEXT STEP (required): connect your local models"
+    log_bold "------------------------------------------------------------"
+    echo -e "  Run this command now: ${BOLD}sudo syn router setup${RESET}"
+    echo "  It finds local Ollama + model files and enables what answers."
+    echo ""
+  fi
 }
 
 # ----------------- Main Execution -----------------
