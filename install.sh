@@ -22,12 +22,18 @@
 #   --local <PATH>      Install from a local source checkout instead of the
 #                       GitHub release bundle (default); PATH is the projects
 #                       root containing each daemon directory
+#   --with-gemma        Download the Gemma 4 E2B brain, Q4 (3.1 GB). This is
+#                       the default; the install ships a working brain.
+#   --with-starter-model Download the tiny Qwen 0.5B starter model (~700 MB).
+#   --with-vision       Download the Gemma vision file for picture
+#                       questions (~1 GB).
+#   --no-models         Skip all model downloads (engine only).
 #   -h, --help          Show this help message
 # ==============================================================================
 
 set -euo pipefail
 
-VERSION="0.3.8"
+VERSION="0.3.9"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -43,6 +49,9 @@ UNINSTALL=false
 PURGE=false
 LOCAL_SRC=""
 TARGET_USER="${SUDO_USER:-}"
+WITH_GEMMA=true
+WITH_STARTER=false
+WITH_VISION=false
 
 # Colors
 BOLD="\033[1m"
@@ -90,8 +99,26 @@ while [[ $# -gt 0 ]]; do
       LOCAL_SRC="$2"
       shift 2
       ;;
+    --with-gemma)
+      WITH_GEMMA=true
+      shift
+      ;;
+    --with-starter-model)
+      WITH_STARTER=true
+      shift
+      ;;
+    --with-vision)
+      WITH_VISION=true
+      shift
+      ;;
+    --no-models)
+      WITH_GEMMA=false
+      WITH_STARTER=false
+      WITH_VISION=false
+      shift
+      ;;
     -h|--help)
-      sed -n '2,26p' "$0" | sed 's/^# //'
+      sed -n '2,34p' "$0" | sed 's/^# //'
       exit 0
       ;;
     *)
@@ -350,6 +377,10 @@ provision_system() {
   chown root:syntrop "${MODEL_DIR}"
   chmod 0775 "${MODEL_DIR}"
 
+  mkdir -p "${MODEL_DIR}/gguf"
+  chown root:syntrop "${MODEL_DIR}/gguf"
+  chmod 0775 "${MODEL_DIR}/gguf"
+
   chown root:syntrop "${TOOLD_DIR}"
   chmod 0775 "${TOOLD_DIR}"
 
@@ -369,6 +400,7 @@ d /run/syntrop 0775 root syntrop -
 d /run/systemd-sentry 0775 sentry syntrop -
 d /var/lib/syntrop 0775 syntrop syntrop -
 d /var/lib/models 0775 root syntrop -
+d /var/lib/models/gguf 0775 root syntrop -
 d /var/lib/toold 0775 root syntrop -
 L+ /run/syntrop/io.syntrop.Sentry1 - - - - /run/systemd-sentry/sentry.sock
 EOF
@@ -671,6 +703,72 @@ install_binaries() {
     done
     log_ok "Purged daemon binaries and linked client CLIs in ${sudo_home}/.local/bin."
   fi
+}
+
+# ----------------- Model Provisioning -----------------
+# The install ships a working brain, not an empty engine. All URLs below
+# were verified live (HTTP 200) before release; the HuggingFace "resolve"
+# links always serve the exact file bytes.
+QWEN_GGUF_URL="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf"
+QWEN_TOK_URL="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json"
+GEMMA_Q4_URL="https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf"
+MMPROJ_URL="https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/mmproj-F16.gguf"
+
+fetch_model() {
+  local url="$1"
+  local dest="$2"
+  if [[ -s "${dest}" ]]; then
+    log_info "Model already present: $(basename "${dest}")"
+    return 0
+  fi
+  log_info "Downloading $(basename "${dest}")..."
+  local tmp="${dest}.part"
+  if ! curl -fSL --retry 3 --retry-delay 2 -o "${tmp}" "${url}"; then
+    rm -f "${tmp}"
+    log_error "Download failed: ${url}"
+    log_error "Check your connection and re-run the installer to resume."
+    exit 1
+  fi
+  mv "${tmp}" "${dest}"
+  chown root:syntrop "${dest}"
+  chmod 0640 "${dest}"
+  log_ok "Fetched $(basename "${dest}")"
+}
+
+install_models() {
+  if [[ "${WITH_GEMMA}" != "true" && "${WITH_STARTER}" != "true" && "${WITH_VISION}" != "true" ]]; then
+    log_info "--no-models: skipping model downloads (engine only)."
+    return 0
+  fi
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    log_info "[DRY-RUN] Would download models into ${MODEL_DIR}/gguf:"
+    if [[ "${WITH_GEMMA}" == "true" ]]; then log_info "[DRY-RUN]   gemma-4-E2B-it-Q4_K_M.gguf (3.1 GB)"; fi
+    if [[ "${WITH_STARTER}" == "true" ]]; then log_info "[DRY-RUN]   qwen2.5-0.5b-instruct-q8_0.gguf + tokenizer (~700 MB)"; fi
+    if [[ "${WITH_VISION}" == "true" ]]; then log_info "[DRY-RUN]   mmproj-F16.gguf (~1 GB)"; fi
+    return 0
+  fi
+
+  command -v curl >/dev/null 2>&1 || {
+    log_error "curl is missing, and models need downloading."
+    log_error "Install curl or re-run with --no-models."
+    exit 1
+  }
+
+  log_info "Fetching models into ${MODEL_DIR}/gguf..."
+  mkdir -p "${MODEL_DIR}/gguf"
+  if [[ "${WITH_STARTER}" == "true" ]]; then
+    fetch_model "${QWEN_GGUF_URL}" "${MODEL_DIR}/gguf/qwen2.5-0.5b-instruct-q8_0.gguf"
+    # Qwen needs its word-list file sitting next to it under this exact name.
+    fetch_model "${QWEN_TOK_URL}" "${MODEL_DIR}/gguf/qwen2.5-0.5b-instruct-q8_0.tokenizer.json"
+  fi
+  if [[ "${WITH_GEMMA}" == "true" ]]; then
+    fetch_model "${GEMMA_Q4_URL}" "${MODEL_DIR}/gguf/gemma-4-E2B-it-Q4_K_M.gguf"
+  fi
+  if [[ "${WITH_VISION}" == "true" ]]; then
+    fetch_model "${MMPROJ_URL}" "${MODEL_DIR}/gguf/mmproj-F16.gguf"
+  fi
+  log_ok "Model provisioning complete."
 }
 
 # ----------------- Systemd Unit Registration -----------------
@@ -1090,6 +1188,11 @@ activate_subsystem() {
   echo "  syntropctl status"
   echo "  syntropd status"
   echo ""
+  if [[ -s "${MODEL_DIR}/gguf/gemma-4-E2B-it-Q4_K_M.gguf" ]]; then
+    echo "A ready brain is installed (Gemma 4 E2B). Try it:"
+    echo "  runtimectl generate -m gemma-4-E2B-it-Q4_K_M \"Say hello in one sentence.\""
+    echo ""
+  fi
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     echo -e "${YELLOW}[NOTE]${RESET} User '${TARGET_USER}' was enrolled in group 'syntrop'."
     echo "       To apply the new group to your current terminal session, run:"
@@ -1120,6 +1223,7 @@ main() {
   check_system
   provision_system
   install_binaries
+  install_models
   register_units
   activate_subsystem
 }
