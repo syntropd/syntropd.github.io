@@ -1274,7 +1274,7 @@ activate_subsystem() {
   echo ""
   echo ""
   if [[ "${ROUTER_WIRED}" == "true" ]]; then
-    echo "Later additions (Ollama, custom endpoints): sudo syn router setup"
+    echo "You can add more providers at any time: sudo syn router setup"
     echo ""
   else
     log_bold "------------------------------------------------------------"
