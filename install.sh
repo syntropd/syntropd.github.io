@@ -30,6 +30,8 @@
 #   --with-vision       Download the Gemma vision file for picture
 #                       questions (~1 GB).
 #   --no-models         Skip all model downloads (engine only).
+#   --quiet             Errors and final summary only
+#   --verbose           Full step-by-step log (dry-run implies this)
 #   -h, --help          Show this help message
 # ==============================================================================
 
@@ -64,13 +66,66 @@ GREEN="\033[0;32m"
 CYAN="\033[0;36m"
 YELLOW="\033[0;33m"
 RED="\033[0;31m"
+DIM="\033[0;90m"
 RESET="\033[0m"
 
-log_info()   { echo -e "${CYAN}[INFO]${RESET} $*"; }
-log_ok()     { echo -e "${GREEN}[OK]${RESET} $*"; }
-log_warn()   { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+# Verbosity: 0 errors+summary, 1 phases+results (default), 2 everything.
+# Dry-run implies verbose (its whole point is showing what would happen)
+# unless --quiet is given explicitly.
+VERBOSITY=1
+QUIET_FLAG=false
+VERBOSE_FLAG=false
+
+log_info()   { if [[ "${VERBOSITY}" -ge 2 ]]; then echo -e "${CYAN}[INFO]${RESET} $*"; fi; }
+log_ok()     { if [[ "${VERBOSITY}" -ge 2 ]]; then echo -e "${GREEN}[OK]${RESET} $*"; fi; }
+log_warn()   { if [[ "${VERBOSITY}" -ge 1 ]]; then echo -e "${YELLOW}[WARN]${RESET} $*"; fi; }
 log_error()  { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
 log_bold()   { echo -e "${BOLD}$*${RESET}"; }
+
+# Receipt UI: one header per phase, one result line each. Bars carry the
+# long phases. Warnings and errors always cut through (level >= 1 / always).
+phase() {
+  if [[ "${VERBOSITY}" -ge 1 ]]; then
+    echo ""
+    echo -e "${BOLD}── $* ${DIM}────────────────────────────────────────${RESET}"
+  fi
+}
+result() {
+  if [[ "${VERBOSITY}" -ge 1 ]]; then
+    echo -e "   ${GREEN}✓${RESET} $*"
+  fi
+}
+
+is_tty() { [[ -t 1 ]]; }
+
+# Green progress bar: bar_draw <label> <done> <total> [shown_done] [shown_total].
+# TTY only; elsewhere the phase result line covers it (no log spam).
+bar_draw() {
+  if [[ "${VERBOSITY}" -lt 1 ]] || ! is_tty; then return 0; fi
+  local label="$1" done="$2" total="$3"
+  local show_done="${4:-$done}" show_total="${5:-$total}"
+  local width=24 filled i bar=""
+  if [[ ${done} -gt ${total} ]]; then done=${total}; fi
+  filled=$(( total > 0 ? width * done / total : 0 ))
+  for (( i=0; i<width; i++ )); do
+    if [[ $i -lt $filled ]]; then bar+="█"; else bar+="░"; fi
+  done
+  printf '\r   %s [%b%s%b] %s/%s' "${label}" "${GREEN}" "${bar}" "${RESET}" "${show_done}" "${show_total}"
+}
+bar_done() {
+  if [[ "${VERBOSITY}" -ge 1 ]] && is_tty; then printf '\n'; fi
+}
+
+human_size() {
+  local bytes="$1"
+  if [[ "${bytes}" -ge 1073741824 ]]; then
+    awk "BEGIN {printf \"%.1f GB\", ${bytes}/1073741824}"
+  elif [[ "${bytes}" -ge 1048576 ]]; then
+    awk "BEGIN {printf \"%d MB\", ${bytes}/1048576}"
+  else
+    awk "BEGIN {printf \"%d KB\", ${bytes}/1024}"
+  fi
+}
 
 # ----------------- CLI Argument Parsing -----------------
 while [[ $# -gt 0 ]]; do
@@ -123,8 +178,16 @@ while [[ $# -gt 0 ]]; do
       WITH_VISION=false
       shift
       ;;
+    --quiet)
+      QUIET_FLAG=true
+      shift
+      ;;
+    --verbose)
+      VERBOSE_FLAG=true
+      shift
+      ;;
     -h|--help)
-      sed -n '2,34p' "$0" | sed 's/^# //'
+      sed -n '2,36p' "$0" | sed 's/^# //'
       exit 0
       ;;
     *)
@@ -135,10 +198,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo -e "${BOLD}============================================================${RESET}"
-echo -e "${BOLD} syntropd - Native AI Subsystem for systemd${RESET}"
-echo -e " Version: ${VERSION} • Apache-2.0 License"
-echo -e "${BOLD}============================================================${RESET}"
+if [[ "${QUIET_FLAG}" == "true" ]]; then
+  VERBOSITY=0
+elif [[ "${VERBOSE_FLAG}" == "true" || "${DRY_RUN}" == "true" ]]; then
+  VERBOSITY=2
+fi
+
+echo -e "${BOLD}syntropd ${VERSION}${RESET} ${DIM}— Native AI Subsystem for systemd${RESET}"
 
 # ----------------- Pre-flight Checks -----------------
 check_euid() {
@@ -156,6 +222,7 @@ check_euid() {
 }
 
 check_system() {
+  phase "System check"
   log_info "Verifying system compatibility & kernel capabilities..."
 
   # 1. OS check
@@ -228,20 +295,25 @@ check_system() {
   fi
 
   # 7. Hardware acceleration check
+  local accel="CPU only"
   if compgen -G "/dev/dri/renderD*" > /dev/null; then
     log_ok "DRM GPU render nodes detected: $(echo /dev/dri/renderD*)"
+    accel="GPU"
   else
     log_info "No DRM render nodes found; CPU execution fallback will be active."
   fi
 
   if compgen -G "/dev/accel/*" > /dev/null; then
     log_ok "Dedicated NPU/AI accelerators detected: $(echo /dev/accel/*)"
+    accel="${accel} + NPU"
   fi
+
+  result "Linux ${ARCH} · systemd ${systemd_ver} · ${accel}"
 }
 
 # ----------------- Uninstallation -----------------
 do_uninstall() {
-  log_bold "\nUninstalling syntropd suite..."
+  phase "Uninstall"
 
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would disable syntrop-sockets.target, stop daemons, and remove unit files and binaries."
@@ -308,14 +380,17 @@ do_uninstall() {
     userdel -f syntrop 2>/dev/null || true
     groupdel syntrop 2>/dev/null || true
     log_ok "Purged configurations, data directories, and system user/group."
+    result "Uninstalled and purged."
   else
     log_ok "Uninstallation complete. (Model cache in ${MODEL_DIR} and configs in ${CONFIG_DIR} preserved)."
+    result "Uninstalled (brains and configs kept)."
   fi
   exit 0
 }
 
 # ----------------- System Provisioning -----------------
 provision_system() {
+  phase "Users and folders"
   log_info "Provisioning system users, groups, and directories..."
 
   if [[ "${DRY_RUN}" == "true" ]]; then
@@ -451,10 +526,12 @@ EOF
   fi
 
   log_ok "System directories and ownership provisioned."
+  result "Users, group and directories ready."
 }
 
 # ----------------- Binary Installation -----------------
 install_binaries() {
+  phase "Programs"
   log_info "Installing suite binaries to ${BIN_DIR}..."
 
   local binaries=("syntropctl" "inferenced" "inferenctl" "modeld" "modelctl" "contextd" "contextctl" "toold" "toolctl" "runtimed" "runtimectl" "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd" "syntrop")
@@ -463,6 +540,13 @@ install_binaries() {
     log_info "[DRY-RUN] Would install binaries: ${binaries[*]} into ${BIN_DIR}."
     return 0
   fi
+
+  local pre_count=0
+  local bin
+  for bin in "${binaries[@]}"; do
+    if [[ -x "${BIN_DIR}/${bin}" ]]; then pre_count=$((pre_count + 1)); fi
+  done
+  local fresh_count=0 from_bundle=0 from_local=0 from_cargo=0
 
   local script_dir
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -511,6 +595,7 @@ install_binaries() {
         if [[ -f "${candidate}" && -x "${candidate}" ]]; then
           install -D -p -m 0755 "${candidate}" "${BIN_DIR}/${bin}"
           log_ok "Installed ${bin} from local build (${candidate})"
+          fresh_count=$((fresh_count + 1)); from_local=$((from_local + 1))
           installed=true
           break 2
         fi
@@ -530,6 +615,7 @@ install_binaries() {
         if [[ -f "${src_bin}" && "${src_bin}" != "${BIN_DIR}/${bin}" ]] && [[ ! "${src_bin}" -ef "${BIN_DIR}/${bin}" ]]; then
           install -D -p -m 0755 "${src_bin}" "${BIN_DIR}/${bin}"
           log_ok "Installed ${bin} from system PATH (${src_bin})"
+          fresh_count=$((fresh_count + 1)); from_local=$((from_local + 1))
           installed=true
         fi
       fi
@@ -578,6 +664,7 @@ install_binaries() {
         if [[ -x "${out_bin}" ]]; then
           install -D -p -m 0755 "${out_bin}" "${BIN_DIR}/${bin}"
           log_ok "Installed ${bin} from local source build"
+          fresh_count=$((fresh_count + 1)); from_local=$((from_local + 1))
           built=true
           break
         fi
@@ -606,6 +693,7 @@ install_binaries() {
         if [[ -f "${tmp_dir}/${bin}" && -x "${tmp_dir}/${bin}" ]]; then
           install -D -p -m 0755 "${tmp_dir}/${bin}" "${BIN_DIR}/${bin}"
           log_ok "Installed ${bin} from GitHub Release v${VERSION}"
+          fresh_count=$((fresh_count + 1)); from_bundle=$((from_bundle + 1))
         fi
       done
     else
@@ -646,6 +734,13 @@ install_binaries() {
     done
     local unique_pkgs=($(echo "${cargo_packages[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
     cargo install --root "${PREFIX}" "${unique_pkgs[@]}" || true
+    local now_present=0
+    for bin in "${binaries[@]}"; do
+      if [[ -x "${BIN_DIR}/${bin}" ]]; then now_present=$((now_present + 1)); fi
+    done
+    from_cargo=$((now_present - pre_count - fresh_count))
+    if [[ ${from_cargo} -lt 0 ]]; then from_cargo=0; fi
+    fresh_count=$((fresh_count + from_cargo))
   fi
 
   # Final Verification & Gate
@@ -669,6 +764,16 @@ install_binaries() {
   # Short alias for the front door (revocable; syntrop stays canonical).
   ln -sf "${BIN_DIR}/syntrop" "${BIN_DIR}/syn"
   log_ok "Linked ${BIN_DIR}/syn -> syntrop."
+
+  if [[ ${fresh_count} -eq 0 ]]; then
+    result "${verified_count}/${#binaries[@]} programs ready (already installed)."
+  else
+    local parts=()
+    if [[ ${from_bundle} -gt 0 ]]; then parts+=("${from_bundle} bundle"); fi
+    if [[ ${from_local} -gt 0 ]]; then parts+=("${from_local} local"); fi
+    if [[ ${from_cargo} -gt 0 ]]; then parts+=("${from_cargo} built"); fi
+    result "${verified_count}/${#binaries[@]} programs ready (${fresh_count} new: $(IFS=,; echo "${parts[*]}"))."
+  fi
 
   # Purge daemon binaries from ~/.local/bin to prevent PATH shadowing, symlink client CLIs only
   if [[ -n "${sudo_home}" && -d "${sudo_home}/.local/bin" ]]; then
@@ -702,27 +807,61 @@ MMPROJ_URL="https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/mmpr
 fetch_model() {
   local url="$1"
   local dest="$2"
+  local name
+  name="$(basename "${dest}")"
   if [[ -s "${dest}" ]]; then
-    log_info "Model already present: $(basename "${dest}")"
+    log_info "Model already present: ${name}"
     return 0
   fi
-  log_info "Downloading $(basename "${dest}")..."
   local tmp="${dest}.part"
-  if ! curl -fSL --retry 3 --retry-delay 2 -o "${tmp}" "${url}"; then
-    rm -f "${tmp}"
-    log_error "Download failed: ${url}"
-    log_error "Check your connection and re-run the installer to resume."
-    exit 1
+  rm -f "${tmp}"
+  local total=""
+  if [[ "${VERBOSITY}" -ge 1 ]] && is_tty; then
+    total="$(curl -fsSIL --max-time 20 "${url}" 2>/dev/null | awk '/^[Cc]ontent-[Ll]ength:/ {len=$2} END {print len}' | tr -d '\r')"
+  fi
+  if [[ "${total}" =~ ^[0-9]+$ && "${total}" -gt 0 ]]; then
+    log_info "Downloading ${name} ($(human_size "${total}"))..."
+    curl -fsSL --retry 3 --retry-delay 2 -o "${tmp}" "${url}" 2>/dev/null &
+    local curl_pid=$!
+    local have=0
+    while kill -0 "${curl_pid}" 2>/dev/null; do
+      # kill -0 also succeeds on zombies; break once curl has exited.
+      if [[ "$(cut -d' ' -f3 "/proc/${curl_pid}/stat" 2>/dev/null)" == "Z" ]]; then break; fi
+      if [[ -f "${tmp}" ]]; then have=$(stat -c%s "${tmp}" 2>/dev/null || echo 0); fi
+      bar_draw "${name}" "${have}" "${total}" "$(human_size "${have}")" "$(human_size "${total}")"
+      sleep 0.5
+    done
+    if wait "${curl_pid}"; then
+      bar_draw "${name}" "${total}" "${total}" "$(human_size "${total}")" "$(human_size "${total}")"
+      bar_done
+    else
+      rm -f "${tmp}"
+      bar_done
+      log_error "Download failed: ${url}"
+      log_error "Check your connection and re-run the installer to resume."
+      exit 1
+    fi
+  else
+    if [[ "${VERBOSITY}" -ge 1 ]]; then echo "   ↓ ${name}..."; fi
+    log_info "Downloading ${name}..."
+    if ! curl -fSL --retry 3 --retry-delay 2 -o "${tmp}" "${url}"; then
+      rm -f "${tmp}"
+      log_error "Download failed: ${url}"
+      log_error "Check your connection and re-run the installer to resume."
+      exit 1
+    fi
   fi
   mv "${tmp}" "${dest}"
   chown root:syntrop "${dest}"
   chmod 0640 "${dest}"
-  log_ok "Fetched $(basename "${dest}")"
+  log_ok "Fetched ${name}"
 }
 
 install_models() {
+  phase "AI brains"
   if [[ "${WITH_GEMMA}" != "true" && "${WITH_STARTER}" != "true" && "${WITH_VISION}" != "true" ]]; then
     log_info "--no-models: skipping model downloads (engine only)."
+    result "Engine only, no brains."
     return 0
   fi
 
@@ -775,14 +914,20 @@ install_models() {
     fetch_model "${MMPROJ_URL}" "${MODEL_DIR}/gguf/mmproj-F16.gguf"
   fi
   log_ok "Model provisioning complete."
+  local brain_files brain_bytes
+  brain_files=$(compgen -G "${MODEL_DIR}/gguf/*.gguf" | wc -l)
+  brain_bytes=$(du -sb "${MODEL_DIR}/gguf" 2>/dev/null | awk '{print $1}')
+  result "${brain_files} brains ready ($(human_size "${brain_bytes:-0}"))."
 }
 
 wire_router() {
   # Point the front door at the installed brain. Runs after sockets are
   # live so setup can verify the engine answers. Never fatal: on failure
   # the closing message falls back to the manual setup step.
+  phase "Wiring"
   if ! compgen -G "${MODEL_DIR}/gguf/*.gguf" > /dev/null; then
     log_info "No model files in ${MODEL_DIR}/gguf; skipping router wiring."
+    result "No brains yet, nothing to wire."
     return 0
   fi
   if [[ "${DRY_RUN}" == "true" ]]; then
@@ -793,6 +938,7 @@ wire_router() {
   if "${BIN_DIR}/routerctl" setup --auto </dev/null; then
     ROUTER_WIRED=true
     log_ok "Router wired to runtimed."
+    result "Front door answers."
     if [[ "${DOWNGRADED_TO_QWEN}" == "true" && -s "${MODEL_DIR}/gguf/qwen2.5-0.5b-instruct-q8_0.gguf" ]]; then
       # Small machine: Gemma may sit on disk from an earlier run, but only
       # Qwen can load here — pin it so the front door answers.
@@ -809,6 +955,7 @@ wire_router() {
 
 # ----------------- Systemd Unit Registration -----------------
 register_units() {
+  phase "Services"
   log_info "Registering systemd units into ${UNIT_DIR}..."
 
   if [[ "${DRY_RUN}" == "true" ]]; then
@@ -1176,10 +1323,12 @@ EOF
 
   systemctl daemon-reload
   log_ok "Systemd units and aliases successfully registered and daemon reloaded."
+  result "16 units registered."
 }
 
 # ----------------- Start & Activate -----------------
 activate_subsystem() {
+  phase "Startup"
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Pre-flight verification completed successfully."
     log_ok "[DRY-RUN] System is fully compatible with syntropd."
@@ -1208,10 +1357,13 @@ activate_subsystem() {
     systemctl reset-failed "${sockets[@]}" syntrop-sockets.target 2>/dev/null || true
     systemctl restart "${sockets[@]}" syntrop-sockets.target
     log_ok "syntrop-sockets.target and activation sockets restarted."
+    result "Sockets live."
 
-    echo ""
-    log_bold "Active Varlink and IPC Sockets:"
-    systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" "routerd*" --no-pager 2>/dev/null || true
+    if [[ "${VERBOSITY}" -ge 2 ]]; then
+      echo ""
+      log_bold "Active Varlink and IPC Sockets:"
+      systemctl list-sockets "inferenced*" "modeld*" "contextd*" "toold*" "runtimed*" "*sentry*" "routerd*" --no-pager 2>/dev/null || true
+    fi
 
     echo ""
     log_bold "Verifying Subsystem Status:"
