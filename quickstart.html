@@ -233,6 +233,8 @@ cargo install routerctl</code></pre>
           <code>runtime</code>, <code>store</code>, <code>hardware</code>,
           <code>context</code>, <code>tools</code>, <code>fleet</code>, <code>system</code>.
           Run <code>syn</code> with no arguments for the map.
+          Bare words are a question: <code>syn say hello in one sentence</code>
+          asks the fleet and prints the reply.
         </p>
         <div class="code-header">
           <span>$ syn router models</span>
@@ -292,7 +294,7 @@ curl http://127.0.0.1:32768/v1/models
 routerctl providers list
 
 # 3. Test latency and connectivity to a specific provider
-routerctl test local-runtimed</code></pre>
+routerctl test runtimed-local</code></pre>
       </div>
     </section>
 
