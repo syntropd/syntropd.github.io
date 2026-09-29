@@ -13,7 +13,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-banner">
-    <span><span class="badge">v0.3.19</span> 7 Modular Components • Pure Rust • Zero-Copy CAS • PSI Load-Shedding • Port 32768 Ingress</span>
+    <span><span class="badge">v0.3.20</span> 7 Modular Components • Pure Rust • 5 Frontiers • Zero-Copy CAS • Port 32768 Ingress</span>
   </div>
 
   <!-- Header & Navigation -->
@@ -291,6 +291,107 @@
             <span style="color: var(--text-dim);">syntropctl(1)</span>
             <a href="manual.html">Manual →</a>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 Architectural Frontiers -->
+    <section style="margin-top: 3rem;">
+      <div class="page-header" style="margin-bottom: 2rem;">
+        <div class="category">Deep Systems Engineering</div>
+        <h2>The Five Architectural Frontiers</h2>
+        <p>Hardening autonomous operating system intelligence with zero compromise on safety, throughput, or memory bounds.</p>
+      </div>
+
+      <div class="subsystem-grid">
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">1. Constrained Decoding</div>
+              <div class="daemon-socket">runtimed • FSM Grammars</div>
+            </div>
+            <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">FRONTIER 1</span>
+          </div>
+          <p class="daemon-desc">
+            Deterministic FSM token filtering supporting JSON schema, regex, and Varlink nul-terminated JSON protocols with SIMD-aligned bitset logit masking and vocab trie pruning.
+          </p>
+          <ul class="daemon-features">
+            <li>Guaranteed syntactically valid JSON &amp; Varlink payloads</li>
+            <li>SIMD bitset token masking before Softmax</li>
+            <li>Trie-based prefix lookahead over vocabularies</li>
+          </ul>
+        </div>
+
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">2. Speculative Decoding</div>
+              <div class="daemon-socket">inferenced &amp; runtimed</div>
+            </div>
+            <span class="badge" style="background: var(--purple-dim); color: var(--purple); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">FRONTIER 2</span>
+          </div>
+          <p class="daemon-desc">
+            Heterogeneous speculative decoding gang-scheduling draft models onto CPU AMX/AVX-512 engines while target models run on discrete GPU/NPU planes, with O(1) KV-cache truncation.
+          </p>
+          <ul class="daemon-features">
+            <li>PlaneRole::Draft (CPU) &amp; PlaneRole::Target (GPU)</li>
+            <li>O(1) PagedKvCache rollback without re-computation</li>
+            <li>2x–3x generation throughput on mixed hardware</li>
+          </ul>
+        </div>
+
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">3. Autonomous Agent Loops</div>
+              <div class="daemon-socket">sentry &amp; toold</div>
+            </div>
+            <span class="badge" style="background: var(--cyan-dim); color: var(--cyan); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">FRONTIER 3</span>
+          </div>
+          <p class="daemon-desc">
+            Closed-loop diagnostic agent iterations with error reflection, circuit breaking (max 5 iterations or 30s timeout), and Bubblewrap/Landlock unprivileged sandbox isolation.
+          </p>
+          <ul class="daemon-features">
+            <li>Bubblewrap unprivileged namespaces isolation</li>
+            <li>Autonomous plan generation &amp; tool execution</li>
+            <li>Deterministic circuit-breaker halting flapping</li>
+          </ul>
+        </div>
+
+        <div class="daemon-card">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">4. Test-Time Compute</div>
+              <div class="daemon-socket">routerd &amp; runtimed</div>
+            </div>
+            <span class="badge" style="background: var(--yellow-dim); color: var(--yellow); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">FRONTIER 4</span>
+          </div>
+          <p class="daemon-desc">
+            Test-time compute scaling with reasoning budgets (<code>reasoning_budget</code>, <code>max_thinking_tokens</code>), forced <code>&lt;/think&gt;</code> token cutoff, and streaming wire think separation.
+          </p>
+          <ul class="daemon-features">
+            <li>Granular reasoning token allocation per request</li>
+            <li>ThinkFilter streaming separation of reasoning_content</li>
+            <li>Forced &lt;/think&gt; token injection &amp; logit masking</li>
+          </ul>
+        </div>
+
+        <div class="daemon-card" style="grid-column: span 2;">
+          <div class="daemon-top">
+            <div>
+              <div class="daemon-name">5. Streaming Infinite Context &amp; Attention Sinks</div>
+              <div class="daemon-socket">runtimed • StreamingLLM</div>
+            </div>
+            <span class="badge" style="background: var(--green-dim); color: var(--green); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono);">FRONTIER 5</span>
+          </div>
+          <p class="daemon-desc">
+            Dynamic state compression with pinned attention sinks (SinkWindowCache, sink_causal_mask) and unrotated RoPE for infinite context generation, paired with bounded StreamJournal to prevent OOM in 24/7 continuous log monitoring.
+          </p>
+          <ul class="daemon-features">
+            <li>Pinned initial sink tokens preventing perplexity collapse</li>
+            <li>Rolling FIFO context window sliding without memory growth</li>
+            <li>Bounded StreamJournal circular ring buffer with strict byte ceilings</li>
+          </ul>
         </div>
       </div>
     </section>

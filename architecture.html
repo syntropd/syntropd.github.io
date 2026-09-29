@@ -530,6 +530,64 @@
       </div>
     </section>
 
+    <!-- Section 5: The Five Architectural Frontiers -->
+    <section id="frontiers" class="diagram-card" style="margin-top: 2rem;">
+      <div class="diagram-header">
+        <div>
+          <h2>5. The Five Architectural Frontiers (Deep Systems Hardening)</h2>
+          <p>
+            Enterprise reliability, bounded latencies, and deterministic reasoning guarantees implemented natively across the daemon enclave.
+          </p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(0,210,180,0.3);">5 FRONTIERS</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Frontier</th>
+              <th>Subsystems</th>
+              <th>Mechanisms &amp; Primitives</th>
+              <th>Operational Guarantees</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. Constrained / Grammar-Guided Decoding</strong></td>
+              <td><code>runtimed</code></td>
+              <td>Deterministic FSM token filtering supporting JSON schema, regex, and Varlink nul-terminated JSON protocols with SIMD-aligned bitset logit masking and trie lookahead.</td>
+              <td>Guaranteed syntactically valid model outputs; zero parser crashes or unparseable JSON downstream.</td>
+            </tr>
+            <tr>
+              <td><strong>2. Heterogeneous Speculative Decoding</strong></td>
+              <td><code>inferenced</code> &amp; <code>runtimed</code></td>
+              <td>Dual-model speculative verification engine gang-scheduling draft models onto CPU AMX/AVX-512 engines while target models execute on discrete GPUs; O(1) <code>PagedKvCache</code> rollback via <code>truncate</code>.</td>
+              <td>2x–3x generation throughput acceleration on mixed CPU/GPU nodes without losing accuracy.</td>
+            </tr>
+            <tr>
+              <td><strong>3. Autonomous Agent Loops</strong></td>
+              <td><code>sentry</code> &amp; <code>toold</code></td>
+              <td>Closed-loop diagnostic iteration with error reflection, plan synthesis, Bubblewrap/Landlock unprivileged sandboxing, and strict circuit breaking (max 5 iterations or 30s timeout).</td>
+              <td>Autonomous failure remediation without flapping, run-away loops, or security escalation.</td>
+            </tr>
+            <tr>
+              <td><strong>4. Test-Time Compute &amp; Reasoning Budgets</strong></td>
+              <td><code>routerd</code> &amp; <code>runtimed</code></td>
+              <td>Granular reasoning token allocation (<code>reasoning_budget</code>, <code>max_thinking_tokens</code>), forced <code>&lt;/think&gt;</code> token cutoff &amp; logit masking, and streaming wire <code>ThinkFilter</code> separating reasoning content.</td>
+              <td>Bounded reasoning compute per request; clean client separation of thinking chains from final answer.</td>
+            </tr>
+            <tr>
+              <td><strong>5. Dynamic State Compression &amp; Infinite Streaming Context</strong></td>
+              <td><code>runtimed</code></td>
+              <td>StreamingLLM initial attention sinks (<code>SinkWindowCache</code>, <code>sink_causal_mask</code>), unrotated RoPE position IDs, and circular <code>StreamJournal</code> ring buffers with byte and entry eviction ceilings.</td>
+              <td>Unbounded continuous journal &amp; log stream processing with constant memory and zero OOM risk.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 
   <!-- Site Footer -->

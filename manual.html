@@ -338,6 +338,63 @@ local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code
   3. local-vllm / qwen3:32b             [SCORE: 64.8] Speed: 42.0  Cost: 30.0   Cap: 99.0</code></pre>
     </section>
 
+    <!-- Subcommand 7: 5 Frontiers Operations -->
+    <section class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>7. Five Architectural Frontiers Reference</h2>
+          <p>Operator commands and API parameters for grammar decoding, speculative decoding, agent loops, reasoning budgets, and infinite streaming context.</p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">FRONTIERS</span>
+      </div>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">1. Constrained JSON Grammar Decoding</h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
+        Force model generation to adhere strictly to JSON schemas or Varlink payload syntax using SIMD-accelerated logit masking:
+      </p>
+      <div class="code-header">
+        <span>$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>varlinkctl call unix:/run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate \
+  '{"model":"qwen2.5:0.5b","prompt":"Emit error report:","grammar_type":"json","grammar":"{}","max_tokens":128}'</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">2. Heterogeneous Speculative Verification</h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
+        Gang-schedule a CPU draft model (e.g. <code>qwen2.5:0.5b</code>) with a GPU target model (e.g. <code>qwen2.5:7b</code>) for 2x–3x generation acceleration:
+      </p>
+      <div class="code-header">
+        <span>$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>varlinkctl call unix:/run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate \
+  '{"model":"qwen2.5:7b","speculative_draft_model":"qwen2.5:0.5b","prompt":"Analyze cgroup freeze:","max_tokens":256}'</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">3. Reasoning Budget &amp; Wire Think Filter</h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
+        Specify reasoning token limits via OpenAI-compatible HTTP ingress, streaming reasoning chains separately from final content:
+      </p>
+      <div class="code-header">
+        <span>$ curl http://127.0.0.1:32768/v1/chat/completions</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>curl -N -s http://127.0.0.1:32768/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "router:fast",
+    "reasoning_budget": 256,
+    "stream": true,
+    "messages": [
+      {"role": "user", "content": "Triage degraded disk I/O on /var/log"}
+    ]
+  }'</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">4. Infinite Context StreamingLLM</h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
+        Streaming journal monitoring runs 24/7 with pinned attention sinks and sliding FIFO windows in <code>SinkWindowCache</code>, preserving bounded RAM.
+      </p>
+    </section>
+
     <!-- systemd Unit Drop-In Integration -->
     <section class="diagram-card" style="margin-top: 2rem;">
       <div class="diagram-header">

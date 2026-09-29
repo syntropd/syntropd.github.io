@@ -255,6 +255,12 @@ ReadOnlyPaths=/usr</code></pre>
               <td>Path restricted to target transient directory</td>
               <td>No</td>
             </tr>
+            <tr>
+              <td><code>bubblewrap_sandbox</code></td>
+              <td>Isolation</td>
+              <td>Unprivileged user/net namespaces, read-only rootfs, Landlock fallback</td>
+              <td>Enforced on all tool processes</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -265,7 +271,7 @@ ReadOnlyPaths=/usr</code></pre>
       <div class="diagram-header">
         <div>
           <h2>runtimed — Owned-Engine Neural Inference, Vision &amp; Embeddings</h2>
-          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Runtime1</code> • Interface: <code>io.syntrop.Runtime1</code> • v0.4.0</p>
+          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Runtime1</code> • Interface: <code>io.syntrop.Runtime1</code> • v0.5.5</p>
         </div>
         <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(244,63,94,0.3);">ZERO-C DEPENDENCIES (CPU BUILD)</span>
       </div>
@@ -284,6 +290,26 @@ ReadOnlyPaths=/usr</code></pre>
             </tr>
           </thead>
           <tbody>
+            <tr>
+              <td><strong>Constrained Grammar Decoding</strong></td>
+              <td>FSM token filtering supporting JSON schema, regex, and Varlink protocols with SIMD bitset masking and trie lookahead.</td>
+              <td>Guaranteed syntactically valid model outputs; zero parser crashes</td>
+            </tr>
+            <tr>
+              <td><strong>Heterogeneous Speculative Decoding</strong></td>
+              <td>Draft-target speculative verification engine paired with O(1) KV-cache rollback (<code>truncate</code>).</td>
+              <td>2x–3x throughput on mixed CPU/GPU hardware</td>
+            </tr>
+            <tr>
+              <td><strong>Reasoning Token Budgeting</strong></td>
+              <td>Enforces thinking token limits via forced <code>&lt;/think&gt;</code> token emission and logit masking.</td>
+              <td>Strict test-time compute scaling bounds</td>
+            </tr>
+            <tr>
+              <td><strong>Attention Sinks &amp; Infinite Streaming Context</strong></td>
+              <td>StreamingLLM attention sinks (<code>SinkWindowCache</code>, <code>sink_causal_mask</code>) and bounded <code>StreamJournal</code>.</td>
+              <td>Unbounded continuous log streaming with zero OOM risk</td>
+            </tr>
             <tr>
               <td><strong>Intra-Node Pipeline Parallelism</strong></td>
               <td>Multi-stage pipeline execution with direct P2P DMA activation passing across contiguous GPU ranges. Slices sealed memfd CAS layers with Gemma4 tied embeddings support.</td>

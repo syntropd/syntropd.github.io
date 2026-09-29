@@ -550,7 +550,7 @@ error InvalidParameter(parameter: string)`,
   'runtimed': {
     name: 'io.syntrop.Runtime1',
     socket: '/run/syntrop/io.syntrop.Runtime1',
-    description: 'Neural model execution runtime in pure Rust (Candle/in-process inference), batching, text generation, and embeddings.',
+    description: 'Neural model execution runtime in pure Rust (Candle/in-process inference), batching, constrained grammar decoding, speculative verification, reasoning budgets, and infinite streaming context.',
     idl: `interface io.syntrop.Runtime1
 
 type LoadedModel (
@@ -570,7 +570,23 @@ type GenerationResult (
   duration_ms: int
 )
 
-method Generate(model: string, prompt: string, max_tokens: int, temperature: float) -> (result: GenerationResult)
+method Generate(
+  model: string,
+  prompt: string,
+  max_tokens: int,
+  temperature: float,
+  top_k: int,
+  top_p: float,
+  seed: int,
+  image: ?string,
+  grammar_type: ?string,
+  grammar: ?string,
+  speculative_draft_model: ?string,
+  reasoning_budget: ?int
+) -> (result: GenerationResult)
+method AttachVision(model: string, mmproj: string) -> (model: LoadedModel)
+method AttachLora(model: string, lora: string) -> (fused_tensors: []string)
+method GetLoad() -> (available_slots: int, max_slots: int, used_bytes: int, models: []LoadedModel)
 method Embed(model: string, text: string) -> (embedding: []float)
 method GetModelStatus(model: string) -> (status: string, model: ?LoadedModel)
 method UnloadModel(model: string) -> (freed_bytes: int)
@@ -579,7 +595,10 @@ method ListLoadedModels() -> (models: []LoadedModel)
 error ModelNotFound(model: string)
 error ContextExceeded(requested: int, max: int)
 error GenerationFailed(reason: string)
-error InvalidParameter(parameter: string)`,
+error InvalidParameter(parameter: string)
+error Overloaded(reason: string)
+error Shutdown(reason: string)
+error PermissionDenied()`,
     exampleCmd: `varlinkctl call unix:/run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.GetModelStatus '{"model": "qwen2.5-coder-7b"}'`,
     exampleOut: `{\n  "status": "loaded",\n  "model": {\n    "architecture": "qwen2",\n    "compute_backend": "cuda",\n    "context_window": 32768,\n    "memory_bytes": 4819000000,\n    "name": "qwen2.5-coder-7b",\n    "parameter_count": 7615000000\n  }\n}`
   },
