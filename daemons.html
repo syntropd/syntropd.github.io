@@ -158,9 +158,11 @@ DeviceAllow=/dev/dri/renderD* rw</code></pre>
 
       <ul class="daemon-features" style="margin-bottom: 1.5rem;">
         <li><strong>Atomic Staging:</strong> Writes incoming models to <code>O_TMPFILE</code> anonymous files and links them atomically only after full SHA-256 digest verification.</li>
+        <li><strong>Remote Pull &amp; Register:</strong> <code>syn pull &lt;model&gt;</code> streams GGUF models directly from Hugging Face or registry, calculates SHA-256 in-flight, registers via <code>io.syntrop.Model1.Register</code>, and triggers <code>io.syntrop.Router1.Reload</code>.</li>
         <li><strong>Triage Pinning:</strong> Emergency reasoning models (e.g. <code>qwen2.5-coder-1.5b:pinned</code>) are marked immune to LRU cache pruning.</li>
         <li><strong>Segment Validation:</strong> Rejects path traversal identifiers (<code>.</code>, <code>..</code>, embedded slashes) at the Varlink boundary with <code>InvalidIdentifier</code>.</li>
       </ul>
+
 
       <div class="code-header">
         <span>systemd/modeld.service</span>

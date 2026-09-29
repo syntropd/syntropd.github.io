@@ -192,27 +192,43 @@ Active Leases:
   lease-7712-aa  [EmergencyTriage] sentry-enclave    4.25 GiB  (plane: drm-renderD128)</code></pre>
     </section>
 
-    <!-- Subcommand 4: models -->
+    <!-- Subcommand 4: models & pull -->
     <section class="diagram-card">
       <div class="diagram-header">
         <div>
-          <h2>4. <code>syntropctl models [ACTION]</code></h2>
-          <p>Manage content-addressable model cache in <code>/var/lib/models</code>.</p>
+          <h2>4. <code>syntropctl models</code> &amp; <code>syn pull &lt;model&gt;</code></h2>
+          <p>Manage content-addressable model cache in <code>/var/lib/models</code> and retrieve models from Hugging Face or registry.</p>
         </div>
-        <span class="badge" style="background: var(--purple-dim); color: var(--purple); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">STORAGE</span>
+        <span class="badge" style="background: var(--purple-dim); color: var(--purple); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">STORAGE &amp; PULL</span>
       </div>
 
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.75rem;">
+        Pull models using aliases (<code>qwen2.5:0.5b</code>, <code>qwen2.5:1.5b</code>, <code>llama3.2:1b</code>, <code>smollm2:360m</code>, <code>gemma4:e2b</code>) or Hugging Face repositories (<code>org/repo</code>):
+      </p>
       <div class="code-header">
+        <span>$ syn pull qwen2.5:0.5b</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>Resolving model: qwen2.5:0.5b
+  Target: qwen2.5:0.5b
+  Source: https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
+qwen2.5 [00:00:02] [########################################] 397.66 MiB/397.66 MiB (0s) Download complete
+  SHA-256: 7f9a12bc81e3a4e98f01b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708
+Successfully pulled and registered qwen2.5:0.5b</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
         <span>$ syntropctl models</span>
         <button class="copy-btn">Copy</button>
       </div>
-      <pre><code>MODEL ID                 FORMAT   DIGEST (SHA-256)      SIZE       PINNED   STATUS
-qwen2.5-coder-7b         GGUF     sha256:7f9a12bc81...  4.48 GiB   YES      RESIDENT
-gemma-4-E2B-it-Q4_K_M   GGUF     sha256:3a1b94cd72...  3.10 GiB   YES      IDLE
-phi-4-mini               GGUF     sha256:c0812efd11...  2.45 GiB   NO       EVICTABLE
+      <pre><code>MODEL                        STATUS     SIZE         PARAMS     BACKEND      CONTEXT   
+------------------------------------------------------------------------------------
+qwen2.5:0.5b                 cached     397.66 MiB   0.5B       -            8192      
+llama3.2:1b                  cached     1.24 GiB     1.2B       -            8192      
+qwen2.5-coder-7b             loaded     4.48 GiB     7.0B       cpu-avx2     32768     
 
-CAS Storage Quota: 10.03 GiB / 32.00 GiB (31.3% utilized)</code></pre>
+CAS Storage Quota: 6.12 GiB / 64.00 GiB (9.6% utilized) • 3 models (1 pinned)</code></pre>
     </section>
+
 
     <!-- Subcommand 5: drift -->
     <section class="diagram-card">

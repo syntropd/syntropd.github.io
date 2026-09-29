@@ -246,6 +246,24 @@ cargo install routerctl</code></pre>
       </div>
 
       <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Model Retrieval: <code>syn pull &lt;model&gt;</code></h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+          Download and register GGUF models directly into Content-Addressable Storage (CAS) with streaming SHA-256 integrity verification and automated daemon reload:
+        </p>
+        <div class="code-header">
+          <span>$ syn pull qwen2.5:0.5b</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <pre><code>Resolving model: qwen2.5:0.5b
+  Target: qwen2.5:0.5b
+  Source: https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf
+qwen2.5 [00:00:03] [########################################] 397.66 MiB/397.66 MiB (0s) Download complete
+  SHA-256: 7f9a12bc81e3a4...
+Successfully pulled and registered qwen2.5:0.5b</code></pre>
+      </div>
+
+
+      <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 3: Run the syntropctl Connectivity Probe</h3>
         <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
           Test end-to-end communication and measure socket dispatch latency:
