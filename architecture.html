@@ -472,6 +472,62 @@
           </table>
         </div>
       </div>
+    <!-- Section 4: Advanced Multi-Accelerator & Clustered Mesh Architecture (/boost Upgrade) -->
+    <section id="boost-architecture" class="diagram-card">
+      <div class="diagram-header">
+        <div>
+          <h2>4. Multi-Accelerator Gang Scheduling &amp; Clustered Mesh Protocol</h2>
+          <p>
+            The <code>/boost</code> subsystem upgrade introduces native multi-GPU gang scheduling, intra-node pipeline &amp; tensor parallelism, two-tier paged KV cache memory tiers, and clustered mesh splitting.
+          </p>
+        </div>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(0,210,180,0.3);">DISTRIBUTED ACCELERATION</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Subsystem</th>
+              <th>Architectural Role</th>
+              <th>Implementation Mechanism</th>
+              <th>Fault Isolation Guarantee</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Composite Gang Scheduling</strong> (<code>inferenced</code>)</td>
+              <td>Multi-GPU arbitration &amp; topology affinity</td>
+              <td>Atomic all-or-nothing allocation across heterogeneous accelerators. PCIe tree depth and NUMA distance scoring prioritize low-latency interconnects. Two-tier preemption freezes lower-priority gangs via cgroups v2.</td>
+              <td>Zero partial deadlock; gang rolls back completely if any single slice allocation fails.</td>
+            </tr>
+            <tr>
+              <td><strong>Pipeline &amp; Tensor Parallelism</strong> (<code>runtimed</code>)</td>
+              <td>Multi-device tensor execution &amp; hybrid scaling</td>
+              <td>Pipelined multi-stage execution with zero-copy direct P2P DMA activation passing. Sealed memfd CAS layer slicing allows hybrid GPU + CPU RAM placement. Pure Rust NVLink tensor parallelism via row/column linear sharding and ring all-reduce.</td>
+              <td>Zero external dynamic C runtime dependencies; pure Rust math kernels with differential oracle proofs.</td>
+            </tr>
+            <tr>
+              <td><strong>Two-Tier Paged KV Cache</strong> (<code>runtimed</code>)</td>
+              <td>Predictable memory budgeting &amp; spill management</td>
+              <td>16-token block paging allocating L1 blocks in GPU VRAM and L2 blocks in pinned host RAM. Asynchronous spill manager monitors kernel PSI memory pressure, proactively offloading blocks before OOM events.</td>
+              <td>Eliminates VRAM fragmentation; decouples sequence length from hardware memory limits.</td>
+            </tr>
+            <tr>
+              <td><strong>SCMP Clustered Mesh Protocol</strong> (<code>routerd</code>)</td>
+              <td>Inter-node prompt chunking &amp; circuit breaking</td>
+              <td>Syntrop Cluster Mesh Protocol (SCMP) zero-copy binary framing over low-latency TCP (<code>TCP_NODELAY</code>, <code>SO_KEEPALIVE</code>) with TLS encryption. 1024-token chunked prefill pipelining with circuit breakers and in-flight atomic prefill replay buffer.</td>
+              <td>Transparent failover to replacement cluster nodes without dropping prompt tokens or context state.</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-GPU Crash Isolation</strong> (<code>systemd-sentry</code>)</td>
+              <td>Automated gang crash triage &amp; quarantine</td>
+              <td>Specialized gang triage discriminating DRM driver hangs, peer DMA interconnect timeouts, and VRAM exhaustion. Automatically quarantines faulty GPUs while preserving healthy devices for uninterrupted service resumption.</td>
+              <td>Guarantees fault containment to a single accelerator without causing cascading node failures.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
   </main>

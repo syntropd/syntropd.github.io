@@ -104,6 +104,11 @@
               <td>Monitors <code>/proc/pressure/{cpu,memory,io}</code> to back off allocations before OOM killer triggers.</td>
               <td><code>MemoryDenyWriteExecute=yes</code></td>
             </tr>
+            <tr>
+              <td><strong>Gang Scheduling &amp; Composite Leases</strong></td>
+              <td>Atomic all-or-nothing multi-accelerator allocations with PCIe tree depth and NUMA distance affinity scoring. Issues composite leases binding sequential pipeline stages or tensor parallel planes with two-tier preemption.</td>
+              <td><code>ProtectControlGroups=no</code> (cgroup v2 freezer)</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -267,6 +272,40 @@ ReadOnlyPaths=/usr</code></pre>
         <code>runtimed</code> runs its own from-scratch Rust inference engine — no llama.cpp, no cloud. It executes GGUF weights (Q8_0, Q4_K family, F16) across Gemma4 and Qwen2 architectures with differential oracle proofs, plus a vision tower for image input, live LoRA fusion, SHA256 weight pins, and normalized vector embeddings. The default CPU build links no dynamic C runtime libraries (zero <code>libstdc++.so</code>, zero <code>libgomp.so</code>); the optional <code>cuda</code> feature adds NVIDIA acceleration (F16-resident weights, F32-exact compute, one GPU per daemon) linking only the NVIDIA driver libraries. Fleet routers steer it via <code>GetLoad</code> (free slots, resident bytes).
       </p>
 
+      <div class="table-wrap" style="margin-top: 1rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Architecture Feature</th>
+              <th>Technical Implementation</th>
+              <th>Performance &amp; Isolation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Intra-Node Pipeline Parallelism</strong></td>
+              <td>Multi-stage pipeline execution with direct P2P DMA activation passing across contiguous GPU ranges. Slices sealed memfd CAS layers with Gemma4 tied embeddings support.</td>
+              <td>Zero-copy activation transfers; sub-millisecond stage handoffs</td>
+            </tr>
+            <tr>
+              <td><strong>Hybrid GPU + Host RAM Execution</strong></td>
+              <td>Automatic fallback placing early transformer layers in GPU VRAM and overflow layers in pinned host RAM. Seamlessly integrates with Linux memory controllers.</td>
+              <td>Enables execution of large parameter models exceeding single GPU VRAM</td>
+            </tr>
+            <tr>
+              <td><strong>Two-Tier Paged KV Cache</strong></td>
+              <td>16-token block paging with L1 VRAM and L2 pinned host RAM. Async spill manager monitors kernel PSI memory pressure and unspills blocks on demand.</td>
+              <td>Zero memory fragmentation; preemptive PSI pressure shedding</td>
+            </tr>
+            <tr>
+              <td><strong>Pure Rust Tensor Parallelism</strong></td>
+              <td>Row-parallel and column-parallel matrix sharding over NVLink using pure Rust ring all-reduce. Zero C communication runtime libraries.</td>
+              <td>Linear scaling across intra-node NVLink interconnects</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="code-header">
         <span>ldd verification (CPU build: Zero Dynamic C Runtime)</span>
         <button class="copy-btn">Copy</button>
@@ -277,6 +316,7 @@ ReadOnlyPaths=/usr</code></pre>
         libm.so.6 => /lib64/libm.so.6 (0x00007f59d4c70000)
         libc.so.6 => /lib64/libc.so.6 (0x00007f59d4a8e000)
         /lib64/ld-linux-x86-64.so.2 (0x00007f59d4d9b000)
+      </code></pre>
     </article>
 
     <!-- Daemon 6: sentry -->
@@ -317,6 +357,11 @@ ReadOnlyPaths=/usr</code></pre>
               <td><strong>Circuit Breaking</strong></td>
               <td>Enforces deterministic cooldown windows and exponential backoffs if a flapping service fails repeatedly.</td>
               <td>Never restarts units indefinitely</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-GPU Gang Triage</strong></td>
+              <td>Automated crash isolation for multi-accelerator gang execution failures. Discriminates DRM driver hangs, peer DMA interconnect timeouts, and VRAM exhaustion to quarantine faulty GPUs while isolating healthy devices for safe workload resumption.</td>
+              <td>Targeted per-device quarantine; zero broad blast radius</td>
             </tr>
           </tbody>
         </table>
@@ -390,6 +435,16 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
               <td><strong>Dual-Stack Wire Ingress</strong></td>
               <td>Listens on dual-stack TCP <code>127.0.0.1:32768</code> / <code>[::1]:32768</code> and local Unix domain socket <code>/run/syntrop/router.sock</code> for standard OpenAI API compatibility.</td>
               <td><code>RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6</code></td>
+            </tr>
+            <tr>
+              <td><strong>SCMP Clustered Mesh Protocol</strong></td>
+              <td>Zero-copy binary framing over low-latency TCP (<code>TCP_NODELAY</code>, <code>SO_KEEPALIVE</code>) with TLS encryption. Tracks node health, round-trip latency, and available cluster VRAM via dynamic topology registry.</td>
+              <td>Inter-node mesh isolation</td>
+            </tr>
+            <tr>
+              <td><strong>Chunked Prefill &amp; Circuit Breaker</strong></td>
+              <td>1024-token micro-batch prefill pipelining across cluster nodes. In-flight replay buffer maintains unacknowledged chunks for atomic replay to alternate nodes upon circuit breaker trip.</td>
+              <td>Zero token loss on node dropout</td>
             </tr>
           </tbody>
         </table>

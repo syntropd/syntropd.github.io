@@ -336,6 +336,20 @@ type LeaseInfo (
   client_pid: ?int
 )
 
+type PlaneSlice (
+  plane_id: string,
+  role: string,
+  stage_index: ?int,
+  memory_bytes: int
+)
+
+type CompositeLease (
+  lease_id: string,
+  gang_id: string,
+  gang_policy: string,
+  slices: []PlaneSlice
+)
+
 type ModelInfo (
   id: string,
   format: string,
@@ -370,11 +384,23 @@ method AcquireLease(
   allocated_memory: int
 )
 
+method AcquireCompositeLease(
+  gang_id: string,
+  slices: []PlaneSlice,
+  gang_policy: string,
+  priority: string,
+  client_unit: ?string
+) -> (
+  lease_id: string,
+  allocated_slices: []PlaneSlice
+)
+
 method ReleaseLease(lease_id: string) -> ()
 method Yield(lease_id: string) -> ()
 method Freeze(lease_id: string) -> ()
 method Thaw(lease_id: string) -> ()
 method ListLeases() -> (leases: []LeaseInfo)
+method ListCompositeLeases() -> (leases: []CompositeLease)
 method ListModels() -> (models: []ModelInfo)
 
 method RegisterModel(
@@ -589,6 +615,15 @@ type ScoredCandidateInfo (
   reason: string
 )
 
+type ClusterNode (
+  id: string,
+  address: string,
+  status: string,
+  total_vram_bytes: int,
+  available_vram_bytes: int,
+  latency_ms: int
+)
+
 method GetStatus() -> (
   status: string,
   version: string,
@@ -600,7 +635,8 @@ method GetStatus() -> (
   psi_level: string,
   psi_memory_some: float,
   rss_bytes: int,
-  rss_mb: float
+  rss_mb: float,
+  cluster_nodes: ?[]ClusterNode
 )
 
 method ListProviders() -> (
