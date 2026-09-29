@@ -334,6 +334,7 @@ do_uninstall() {
 
   rm -f "${UNIT_DIR}/syntrop-sockets.target"
   rm -f "${UNIT_DIR}/syntrop-triage@.service"
+  rm -f /etc/polkit-1/rules.d/49-syntrop-tool.rules
   rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}"
 
   systemctl daemon-reload 2>/dev/null || true
@@ -431,6 +432,29 @@ provision_system() {
     fi
   done
 
+  # 2d. Unprivileged daemon users (least privilege: no daemon runs as root)
+  if ! getent group sentry >/dev/null 2>&1; then
+    groupadd -r sentry
+    log_ok "Created system group: sentry"
+  fi
+  for u in inferenced modeld syntrop-tool syntrop-context; do
+    if ! id -u "$u" >/dev/null 2>&1; then
+      case "$u" in
+        inferenced) home=/var/lib/inferenced; gecos="Syntropd Hardware Arbiter" ;;
+        modeld) home=/var/lib/models; gecos="Syntropd Model Store" ;;
+        syntrop-tool) home=/var/lib/toold; gecos="Syntropd Tool Daemon" ;;
+        syntrop-context) home=/var/lib/contextd; gecos="Syntropd Context Daemon" ;;
+      esac
+      useradd -r -s /usr/sbin/nologin -g syntrop -d "$home" -c "$gecos" "$u" 2>/dev/null || \
+      useradd -r -s /bin/false -g syntrop -d "$home" -c "$gecos" "$u"
+      log_ok "Created system user: $u"
+    fi
+  done
+  # toold reads the system journal for diagnostics (journal.slice tool)
+  if getent group systemd-journal >/dev/null 2>&1 && ! id -nG syntrop-tool 2>/dev/null | grep -qw systemd-journal; then
+    usermod -aG systemd-journal syntrop-tool 2>/dev/null || true
+  fi
+
   # 3. User enrollment for unprivileged IPC socket access
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     if id "${TARGET_USER}" >/dev/null 2>&1; then
@@ -465,8 +489,12 @@ provision_system() {
   chown root:syntrop "${TOOLD_DIR}"
   chmod 0775 "${TOOLD_DIR}"
 
-  chown root:root "${ROLLBACK_DIR}"
-  chmod 0700 "${ROLLBACK_DIR}"
+  mkdir -p /var/lib/contextd /var/lib/contextd/diffs
+  chown root:syntrop /var/lib/contextd /var/lib/contextd/diffs
+  chmod 0775 /var/lib/contextd /var/lib/contextd/diffs
+
+  chown root:syntrop "${ROLLBACK_DIR}"
+  chmod 0770 "${ROLLBACK_DIR}"
 
   mkdir -p /var/lib/syntrop
   chown syntrop:syntrop /var/lib/syntrop 2>/dev/null || true
@@ -483,6 +511,8 @@ d /var/lib/syntrop 0775 syntrop syntrop -
 d /var/lib/models 0775 root syntrop -
 d /var/lib/models/gguf 0775 root syntrop -
 d /var/lib/toold 0775 root syntrop -
+d /var/lib/contextd 0775 root syntrop -
+d /var/lib/contextd/diffs 0775 root syntrop -
 L+ /run/syntrop/io.syntrop.Sentry1 - - - - /run/systemd-sentry/sentry.sock
 EOF
   systemd-tmpfiles --create /etc/tmpfiles.d/syntrop.conf 2>/dev/null || true
@@ -1019,10 +1049,44 @@ After=toold.socket
 [Service]
 Type=notify
 ExecStart=${BIN_DIR}/toold
-ProtectSystem=strict
-ReadWritePaths=/var/lib/toold /var/lib/syntrop/rollbacks /run/syntrop
 Restart=on-failure
 RestartSec=2s
+
+# No WatchdogSec: the daemon sends READY/STOPPING but no WATCHDOG=1
+# pings, so a watchdog would kill it on a timer.
+
+# Unprivileged execution (privileged remediation via polkit rule)
+User=syntrop-tool
+Group=syntrop
+SupplementaryGroups=systemd-journal
+NoNewPrivileges=yes
+
+# Hardened sandboxing (children inherit mount + seccomp containment)
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+PrivateTmp=true
+PrivateDevices=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Storage and runtime paths
+ReadWritePaths=/var/lib/toold /var/lib/syntrop/rollbacks /run/syntrop
+ReadOnlyPaths=/etc /var/log /usr/lib/systemd/system
+
+# Resource containment
+MemoryHigh=32M
+MemoryMax=64M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
   # 4. runtimed.socket & runtimed.service
@@ -1122,9 +1186,56 @@ After=inferenced.socket
 [Service]
 Type=notify
 ExecStart=${BIN_DIR}/inferenced
-ReadWritePaths=/var/lib/models /run/syntrop
 Restart=on-failure
-RestartSec=2s
+RestartSec=3s
+WatchdogSec=30s
+Slice=ai.slice
+
+# Unprivileged execution (render/video for GPU telemetry)
+User=inferenced
+Group=syntrop
+SupplementaryGroups=render video sentry
+NoNewPrivileges=yes
+AmbientCapabilities=CAP_KILL
+CapabilityBoundingSet=CAP_KILL
+
+# Security & Sandboxing
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+# Directories (/run/syntrop is fleet-shared via tmpfiles; state is private)
+StateDirectory=inferenced
+
+# Linux Device Permissions (DRM & Accel)
+DeviceAllow=/dev/dri/renderD* rw
+DeviceAllow=/dev/accel/* rw
+DeviceAllow=/dev/hailo* rw
+DeviceAllow=/dev/kfd rw
+
+# cgroup v2 & systemd-oomd Protection
+ManagedOOMPreference=avoid
+OOMScoreAdjust=-900
+OOMPolicy=stop
+
+# Logging & systemd-journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=inferenced
+
+LimitCORE=infinity
+Environment=RUST_BACKTRACE=1
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
   # 6. contextd.socket & contextd.service
@@ -1157,9 +1268,43 @@ After=contextd.socket
 [Service]
 Type=notify
 ExecStart=${BIN_DIR}/contextd
-ReadWritePaths=/run/syntrop
 Restart=on-failure
 RestartSec=2s
+
+# No WatchdogSec: the daemon sends READY/STOPPING but no WATCHDOG=1
+# pings, so a watchdog would kill it on a timer.
+
+# Unprivileged execution
+User=syntrop-context
+Group=syntrop
+NoNewPrivileges=yes
+
+# Hardened sandboxing
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+PrivateTmp=true
+PrivateDevices=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Storage and runtime path access
+ReadWritePaths=/var/lib/contextd /run/syntrop
+ReadOnlyPaths=/etc /var/log /usr/lib/systemd/system
+
+# Resource containment
+MemoryHigh=32M
+MemoryMax=64M
+TasksMax=16
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
   # 7. modeld.socket & modeld.service
@@ -1191,9 +1336,30 @@ After=modeld.socket
 [Service]
 Type=notify
 ExecStart=${BIN_DIR}/modeld
-ReadWritePaths=/var/lib/models /run/syntrop
+WatchdogSec=15
 Restart=on-failure
 RestartSec=2s
+
+# Unprivileged execution (Group=syntrop for shared model store writes)
+User=modeld
+Group=syntrop
+NoNewPrivileges=yes
+
+# Sandboxing and security hardening
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+
+# Allowed filesystem paths
+ReadWritePaths=/var/lib/models /run/syntrop
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
   # 8. systemd-sentry.socket & systemd-sentry.service
@@ -1320,6 +1486,29 @@ EOF
   # 10. Create sentry unit symlink aliases
   ln -sf "${UNIT_DIR}/systemd-sentry.service" "${UNIT_DIR}/sentry.service"
   ln -sf "${UNIT_DIR}/systemd-sentry.socket" "${UNIT_DIR}/sentry.socket"
+
+  # 11. Polkit rule: unprivileged toold may restart fleet units only
+  # (mirrors toold/polkit/49-syntrop-tool.rules; meta stays self-contained)
+  mkdir -p /etc/polkit-1/rules.d
+  cat <<'EOF' > /etc/polkit-1/rules.d/49-syntrop-tool.rules
+// toold self-healing: let the unprivileged daemon user restart fleet
+// units (the unit.restart tool). Narrow by verb AND unit name —
+// anything else falls through to the default policy (deny).
+polkit.addRule(function(action, subject) {
+    if (action.id != "org.freedesktop.systemd1.manage-units") return;
+    if (subject.user != "syntrop-tool") return;
+    if (action.lookup("verb") != "restart") return;
+    var unit = action.lookup("unit");
+    var units = (typeof unit == "string") ? [unit] : unit;
+    if (!units || !units.length) return;
+    var fleet = /^(syntrop-|routerd|runtimed|inferenced|modeld|contextd|toold|sentry|systemd-sentry|syntropd)[\w@.:-]*$/;
+    for (var i = 0; i < units.length; i++) {
+        if (!fleet.test(units[i])) return;
+    }
+    return polkit.Result.YES;
+});
+EOF
+  chmod 0644 /etc/polkit-1/rules.d/49-syntrop-tool.rules
 
   systemctl daemon-reload
   log_ok "Systemd units and aliases successfully registered and daemon reloaded."
