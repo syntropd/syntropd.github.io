@@ -1120,6 +1120,7 @@ After=network.target runtimed.socket
 Type=notify
 User=syntrop-runtime
 Group=syntrop
+Environment="RUNTIMED_IDLE_UNLOAD_SECS=300"
 ExecStart=${BIN_DIR}/runtimed
 Restart=on-failure
 RestartSec=2s
@@ -1343,6 +1344,7 @@ RestartSec=2s
 # Unprivileged execution (Group=syntrop for shared model store writes)
 User=modeld
 Group=syntrop
+Environment="MODELD_TRUSTED_GROUP=syntrop"
 NoNewPrivileges=yes
 
 # Sandboxing and security hardening
