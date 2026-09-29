@@ -548,7 +548,7 @@ kind = "varlink"
 base_url = "/run/syntrop/io.syntrop.Inference1"
 tier = "fast"
 weight = 1.3
-timeout_ms = 10000
+timeout_ms = 600000
 EOF
     chown root:syntrop "${CONFIG_DIR}/routerd.toml" 2>/dev/null || true
     chmod 0640 "${CONFIG_DIR}/routerd.toml" 2>/dev/null || true
