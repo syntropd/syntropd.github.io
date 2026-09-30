@@ -591,6 +591,8 @@ method Embed(model: string, text: string) -> (embedding: []float)
 method GetModelStatus(model: string) -> (status: string, model: ?LoadedModel)
 method UnloadModel(model: string) -> (freed_bytes: int)
 method ListLoadedModels() -> (models: []LoadedModel)
+method StreamAudioOut(text: string, voice: ?string, sink_type: ?string) -> (bytes_streamed: int, sample_rate: int, channels: int)
+method GenerateVisual(prompt: string, width: ?int, height: ?int, seed: ?int, steps: ?int, lease_id: ?string) -> (image_path: string, bytes: int, width: int, height: int, format: string)
 
 error ModelNotFound(model: string)
 error ContextExceeded(requested: int, max: int)
@@ -684,7 +686,7 @@ method TestProvider(
   error: ?string
 )`,
     exampleCmd: `varlinkctl call unix:/run/syntrop/io.syntrop.Router1 io.syntrop.Router1.GetStatus '{}'`,
-    exampleOut: `{\n  "active_requests": 0,\n  "healthy_providers_count": 3,\n  "providers_count": 3,\n  "psi_level": "normal",\n  "psi_memory_some": 0.0,\n  "rss_mb": 9.12,\n  "status": "operational",\n  "total_requests": 428,\n  "uptime_seconds": 8040,\n  "version": "0.3.23"\n}`
+    exampleOut: `{\n  "active_requests": 0,\n  "healthy_providers_count": 3,\n  "providers_count": 3,\n  "psi_level": "normal",\n  "psi_memory_some": 0.0,\n  "rss_mb": 9.12,\n  "status": "operational",\n  "total_requests": 428,\n  "uptime_seconds": 8040,\n  "version": "0.3.24"\n}`
   },
 
   'service': {

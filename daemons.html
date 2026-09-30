@@ -271,7 +271,7 @@ ReadOnlyPaths=/usr</code></pre>
       <div class="diagram-header">
         <div>
           <h2>runtimed — Owned-Engine Neural Inference, Vision &amp; Embeddings</h2>
-          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Runtime1</code> • Interface: <code>io.syntrop.Runtime1</code> • v0.5.6</p>
+          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Runtime1</code> • Interface: <code>io.syntrop.Runtime1</code> • v0.5.7</p>
         </div>
         <span class="badge" style="background: var(--rose-dim); color: var(--rose); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(244,63,94,0.3);">ZERO-C DEPENDENCIES (CPU BUILD)</span>
       </div>
@@ -329,6 +329,11 @@ ReadOnlyPaths=/usr</code></pre>
               <td><strong>Pure Rust Tensor Parallelism</strong></td>
               <td>Row-parallel and column-parallel matrix sharding over NVLink using pure Rust ring all-reduce. Zero C communication runtime libraries.</td>
               <td>Linear scaling across intra-node NVLink interconnects</td>
+            </tr>
+            <tr>
+              <td><strong>Real-Time Multimedia Streaming</strong></td>
+              <td>Async 24kHz S16LE PCM speech streaming via PipeWire (<code>pw-cat</code>) and atomic 1-step SD-Turbo generative PNG output under isolated compute leases.</td>
+              <td>Sub-100ms first audio packet; atomic host runtime file writes</td>
             </tr>
           </tbody>
         </table>
