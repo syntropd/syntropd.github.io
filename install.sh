@@ -999,7 +999,6 @@ register_units() {
 Description=syntropd Unified Socket Activation Umbrella
 Documentation=https://syntropd.github.io/architecture.html#socket
 Wants=inferenced.socket modeld.socket contextd.socket toold.socket runtimed.socket systemd-sentry.socket routerd.socket
-After=network.target
 
 [Install]
 WantedBy=sockets.target multi-user.target
