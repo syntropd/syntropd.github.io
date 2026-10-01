@@ -217,6 +217,24 @@ qwen2.5 [00:00:02] [########################################] 397.66 MiB/397.66 
 Successfully pulled and registered qwen2.5:0.5b</code></pre>
 
       <div class="code-header" style="margin-top: 1rem;">
+        <span>$ sudo syn setup --family qwen</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+        Automatically size hardware envelopes, pull and pin draft &amp; primary models via <code>modelctl bootstrap</code>, generate speculative router configurations, and reload services:
+      </p>
+      <pre><code>=== Syntrop Setup: Family [qwen] (Envelope: auto) ===
+[1/3] Sizing hardware envelope and dispatching to modelctl bootstrap...
+  CPU Cores: 12 | Host RAM: 14.8 GB avail (7.4 GB draft budget)
+  Selected CPU Draft: qwen2.5:0.5b [Q8_0]
+  [&#10003;] modelctl bootstrap completed successfully.
+[2/3] Generating speculative routerd.toml configuration...
+  [&#10003;] Speculative router configuration written to /etc/syntrop/routerd.toml
+[3/3] Reloading routerd.service...
+  [&#10003;] routerd.service reloaded successfully.
+Setup completed successfully for family: qwen</code></pre>
+
+      <div class="code-header" style="margin-top: 1rem;">
         <span>$ syntropctl models</span>
         <button class="copy-btn">Copy</button>
       </div>

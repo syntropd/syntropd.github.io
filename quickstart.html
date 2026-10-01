@@ -262,6 +262,36 @@ qwen2.5 [00:00:03] [########################################] 397.66 MiB/397.66 
 Successfully pulled and registered qwen2.5:0.5b</code></pre>
       </div>
 
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Model Family Autoloader: <code>syn setup</code></h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+          Automatically discover your hardware envelope (RAM, VRAM, CPU cores), download and pin a curated model family (Qwen, Granite, or Gemma), wire speculative decoding in <code>/etc/syntrop/routerd.toml</code>, and reload <code>routerd.service</code>:
+        </p>
+        <div class="code-header">
+          <span>$ sudo syn setup --family qwen</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <pre><code>=== Syntrop Setup: Family [qwen] (Envelope: auto) ===
+
+[1/3] Sizing hardware envelope and dispatching to modelctl bootstrap...
+=== Hardware Envelope &amp; Usable Memory Budgets ===
+  CPU Cores:        12
+  Host RAM:         14.8 GB avail -&gt; 7.4 GB usable draft budget (50%)
+  GPU VRAM:         None detected (CPU draft only)
+
+=== Selected Model Family: qwen ===
+  CPU Draft:        qwen2.5:0.5b [Q8_0] (~650 MB)
+  [&#10003;] modelctl bootstrap completed successfully.
+
+[2/3] Generating speculative routerd.toml configuration...
+  [&#10003;] Speculative router configuration written to /etc/syntrop/routerd.toml
+
+[3/3] Reloading routerd.service...
+  [&#10003;] routerd.service reloaded successfully.
+
+Setup completed successfully for family: qwen</code></pre>
+      </div>
+
 
       <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 3: Run the syntropctl Connectivity Probe</h3>

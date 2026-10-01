@@ -979,7 +979,7 @@ wire_router() {
       fi
     fi
   else
-    log_warn "Automatic router wiring failed; run 'sudo syn router setup' by hand."
+    log_warn "Automatic router wiring failed; run 'syn setup' or 'sudo syn router setup' by hand."
   fi
 }
 
@@ -1596,10 +1596,10 @@ activate_subsystem() {
   echo ""
   if [[ "${ROUTER_WIRED}" != "true" ]]; then
     log_bold "------------------------------------------------------------"
-    log_bold " NEXT STEP (required): connect your local models"
+    log_bold " NEXT STEP (required): bootstrap model family & router"
     log_bold "------------------------------------------------------------"
-    echo -e "  Run this command now: ${BOLD}sudo syn router setup${RESET}"
-    echo "  It finds your model files and connects them to the front door."
+    echo -e "  Run this command now: ${BOLD}syn setup${RESET} (or ${BOLD}syn setup --family qwen${RESET})"
+    echo "  It auto-sizes hardware envelopes, bootstraps model families, and connects them to the front door."
     echo ""
   fi
 }
