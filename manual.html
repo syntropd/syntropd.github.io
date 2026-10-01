@@ -514,6 +514,58 @@ syn admin audit --limit 50 --unit nginx.service --json
 syn admin lockout reset nginx.service</code></pre>
     </section>
 
+    <!-- SECTION 8: Linux Cognitive Desktop Companion -->
+    <section class="section" id="companion">
+      <div class="section-badge">Section 8</div>
+      <h2>Linux Cognitive Desktop Companion</h2>
+      <p class="section-lead">
+        <code>syn companion</code> delivers multimodal visual reasoning, automated UI action planning, and virtual desktop automation. It combines zero-disk screencast capture via <code>io.syntrop.Sensory1</code>, zero-disk multimodal streaming over <code>routerd</code> (<code>/run/syntrop/router.sock</code>), and guarded virtual HID actuation via <code>io.syntrop.Actuator1</code> with automated physical input preemption.
+      </p>
+
+      <div class="code-header">
+        <span>Desktop Companion CLI (`syn companion`)</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code># Ask a grounded visual question about the active screen
+syn companion ask "Explain what is causing the compilation error in the active terminal"
+
+# Plan and execute desktop UI actions via virtual HID actuator
+syn companion execute "focus terminal and run cargo check" --dry-run
+syn companion execute "click the submit button"
+
+# Run daemonized ambient listening session for voice or hotkey triggers
+syn companion listen --voice --hotkey "Super+Space"
+
+# Manage systemd user unit
+systemctl --user status syntrop-companion.service
+systemctl --user enable --now syntrop-companion.service</code></pre>
+
+      <div class="code-header">
+        <span>Systemd User Unit Configuration (`syntrop-companion.service`)</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[Unit]
+Description=syntropd Linux Cognitive Desktop Companion
+Documentation=https://syntropd.github.io/manual.html
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/syntropctl companion listen
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=syntrop-companion
+
+# Sandboxing (GEMINI.md pure systemd-native)
+PrivateTmp=true
+
+[Install]
+WantedBy=graphical-session.target</code></pre>
+    </section>
+
   </main>
 
   <!-- Site Footer -->

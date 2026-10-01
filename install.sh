@@ -335,6 +335,7 @@ do_uninstall() {
   rm -f "${UNIT_DIR}/syntrop-sockets.target"
   rm -f "${UNIT_DIR}/syntrop-triage@.service"
   rm -f "${UNIT_DIR}/syntrop-admin@.service"
+  rm -f /usr/lib/systemd/user/syntrop-companion.service /etc/systemd/user/syntrop-companion.service
   rm -f /etc/polkit-1/rules.d/49-syntrop-tool.rules
   rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}"
 
@@ -1541,9 +1542,39 @@ polkit.addRule(function(action, subject) {
 EOF
   chmod 0644 /etc/polkit-1/rules.d/49-syntrop-tool.rules
 
+  # 12. systemd user unit: syntrop-companion.service
+  local user_unit_dir="/usr/lib/systemd/user"
+  if [[ ! -d "${user_unit_dir}" ]] && [[ -d "/etc/systemd/user" ]]; then
+    user_unit_dir="/etc/systemd/user"
+  fi
+  mkdir -p "${user_unit_dir}"
+  cat <<'EOF' > "${user_unit_dir}/syntrop-companion.service"
+[Unit]
+Description=syntropd Linux Cognitive Desktop Companion
+Documentation=https://syntropd.github.io/manual.html
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/syntropctl companion listen
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=syntrop-companion
+
+# Sandboxing (GEMINI.md pure systemd-native)
+PrivateTmp=true
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+  chmod 0644 "${user_unit_dir}/syntrop-companion.service"
+
   systemctl daemon-reload
   log_ok "Systemd units and aliases successfully registered and daemon reloaded."
-  result "16 units registered."
+  result "17 units registered."
 }
 
 # ----------------- Start & Activate -----------------
