@@ -334,6 +334,7 @@ do_uninstall() {
 
   rm -f "${UNIT_DIR}/syntrop-sockets.target"
   rm -f "${UNIT_DIR}/syntrop-triage@.service"
+  rm -f "${UNIT_DIR}/syntrop-admin@.service"
   rm -f /etc/polkit-1/rules.d/49-syntrop-tool.rules
   rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}"
 
@@ -437,23 +438,26 @@ provision_system() {
     groupadd -r sentry
     log_ok "Created system group: sentry"
   fi
-  for u in inferenced modeld syntrop-tool syntrop-context; do
+  for u in inferenced modeld syntrop-tool syntrop-context syntrop-admin; do
     if ! id -u "$u" >/dev/null 2>&1; then
       case "$u" in
         inferenced) home=/var/lib/inferenced; gecos="Syntropd Hardware Arbiter" ;;
         modeld) home=/var/lib/models; gecos="Syntropd Model Store" ;;
         syntrop-tool) home=/var/lib/toold; gecos="Syntropd Tool Daemon" ;;
         syntrop-context) home=/var/lib/contextd; gecos="Syntropd Context Daemon" ;;
+        syntrop-admin) home=/var/lib/syntrop; gecos="Syntropd Autonomous Healing Admin" ;;
       esac
       useradd -r -s /usr/sbin/nologin -g syntrop -d "$home" -c "$gecos" "$u" 2>/dev/null || \
       useradd -r -s /bin/false -g syntrop -d "$home" -c "$gecos" "$u"
       log_ok "Created system user: $u"
     fi
   done
-  # toold reads the system journal for diagnostics (journal.slice tool)
-  if getent group systemd-journal >/dev/null 2>&1 && ! id -nG syntrop-tool 2>/dev/null | grep -qw systemd-journal; then
-    usermod -aG systemd-journal syntrop-tool 2>/dev/null || true
-  fi
+  # toold and syntrop-admin read/write system journal
+  for j_user in syntrop-tool syntrop-admin; do
+    if getent group systemd-journal >/dev/null 2>&1 && ! id -nG "$j_user" 2>/dev/null | grep -qw systemd-journal; then
+      usermod -aG systemd-journal "$j_user" 2>/dev/null || true
+    fi
+  done
 
   # 3. User enrollment for unprivileged IPC socket access
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
@@ -1004,7 +1008,7 @@ Wants=inferenced.socket modeld.socket contextd.socket toold.socket runtimed.sock
 WantedBy=sockets.target multi-user.target
 EOF
 
-  # 2. syntrop-triage@.service
+  # 2. syntrop-triage@.service & syntrop-admin@.service
   cat <<'EOF' > "${UNIT_DIR}/syntrop-triage@.service"
 [Unit]
 Description=syntropd Autonomous Triage for Failed Unit %I
@@ -1016,6 +1020,31 @@ Type=oneshot
 ExecStart=/usr/local/bin/syntropctl explain %I
 StandardOutput=journal
 StandardError=journal
+EOF
+
+  cat <<'EOF' > "${UNIT_DIR}/syntrop-admin@.service"
+[Unit]
+Description=syntropd Autonomous OS Self-Healing & Remediation for %I
+Documentation=https://syntropd.github.io/manual.html
+After=syntrop-sockets.target sentry.service toold.service contextd.service
+
+[Service]
+Type=oneshot
+User=syntrop-admin
+Group=syntrop
+ExecStart=/usr/local/bin/syn admin remediate %I
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=syntrop-admin
+
+# Confinement & Sandboxing (GEMINI.md pure systemd-native)
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Varlink Delegation & Runtime
+RuntimeDirectory=syntrop
 EOF
 
   # 3. toold.socket & toold.service

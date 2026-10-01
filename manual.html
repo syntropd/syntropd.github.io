@@ -461,19 +461,57 @@ OnFailure=syntrop-triage@%n.service</code></pre>
       </p>
 
       <div class="code-header">
-        <span>/usr/lib/systemd/system/syntrop-triage@.service</span>
+        <span>/usr/lib/systemd/system/syntrop-admin@.service</span>
         <button class="copy-btn">Copy</button>
       </div>
       <pre><code>[Unit]
-Description=syntropd Autonomous Triage for %I
+Description=syntropd Autonomous OS Self-Healing &amp; Remediation for %I
 Documentation=https://syntropd.github.io/manual.html
-After=syntrop-sockets.target
+After=syntrop-sockets.target sentry.service toold.service contextd.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/syntropctl explain --auto-remediate %I
+User=syntrop-admin
+Group=syntrop
+ExecStart=/usr/bin/syn admin remediate %I
 StandardOutput=journal
-StandardError=journal</code></pre>
+StandardError=journal
+SyslogIdentifier=syntrop-admin
+
+# Systemd Sandboxing
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true</code></pre>
+    </section>
+
+    <!-- SECTION 7: Autonomous OS Self-Healing & Administration -->
+    <section class="section" id="admin">
+      <div class="section-badge">Section 7</div>
+      <h2>Autonomous OS Self-Healing &amp; Administration</h2>
+      <p class="section-lead">
+        <code>syn admin</code> operates as the front door for autonomous self-healing, declarative remediation recipes, and circuit-breaker lockout safety across the subsystem.
+      </p>
+
+      <div class="code-header">
+        <span>Autonomous Administration CLI (`syn admin`)</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code># Inspect autonomous healing readiness and circuit-breaker states
+syn admin status
+
+# Execute or simulate a guided remediation recipe
+syn admin remediate nginx.service --recipe restart --dry-run
+syn admin remediate nginx.service
+
+# Roll back configuration modifications from remediation snapshots
+syn admin rollback nginx.service
+
+# Inspect structured journald forensic audit records
+syn admin audit --limit 50 --unit nginx.service --json
+
+# Manually reset circuit-breaker lockout after operator inspection
+syn admin lockout reset nginx.service</code></pre>
     </section>
 
   </main>
