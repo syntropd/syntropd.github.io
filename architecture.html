@@ -530,16 +530,16 @@
       </div>
     </section>
 
-    <!-- Section 5: The Five Architectural Frontiers -->
+    <!-- Section 5: The Seven Architectural Frontiers -->
     <section id="frontiers" class="diagram-card" style="margin-top: 2rem;">
       <div class="diagram-header">
         <div>
-          <h2>5. The Five Architectural Frontiers (Deep Systems Hardening)</h2>
+          <h2>5. The Seven Architectural Frontiers (Deep Systems Hardening)</h2>
           <p>
             Enterprise reliability, bounded latencies, and deterministic reasoning guarantees implemented natively across the daemon enclave.
           </p>
         </div>
-        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(0,210,180,0.3);">5 FRONTIERS</span>
+        <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.3rem 0.75rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid rgba(0,210,180,0.3);">7 FRONTIERS</span>
       </div>
 
       <div class="table-wrap">
@@ -582,6 +582,18 @@
               <td><code>runtimed</code></td>
               <td>StreamingLLM initial attention sinks (<code>SinkWindowCache</code>, <code>sink_causal_mask</code>), unrotated RoPE position IDs, and circular <code>StreamJournal</code> ring buffers with byte and entry eviction ceilings.</td>
               <td>Unbounded continuous journal &amp; log stream processing with constant memory and zero OOM risk.</td>
+            </tr>
+            <tr>
+              <td><strong>6. End-to-End Multimedia Pipeline</strong></td>
+              <td><code>routerd</code> &amp; <code>runtimed</code></td>
+              <td>Full bidirectional multimodal engine with vectorized spatial patch pooling (2x2, 3x3, 4x4), ephemeral vision tower lifecycle unpinning VRAM post-prefill, L2 host visual KV prefix caching, real-time 24kHz S16LE streaming audio out (Kokoro TTS) to PipeWire, and 1-step SD-Turbo generative visuals rendering.</td>
+              <td>Sub-millisecond audio streaming over PipeWire; atomic visual artifact generation; zero VRAM bloat from unpinned vision encoders.</td>
+            </tr>
+            <tr>
+              <td><strong>7. Dynamic Memory &amp; Host OS Elasticity</strong></td>
+              <td><code>inferenced</code> &amp; <code>runtimed</code></td>
+              <td>Zero-idle kernel telemetry via non-blocking fixed-stack sysfs DRM sampling (<code>/sys/class/drm/renderD*</code>), dual-watermark hysteresis memory governor (85% spill, 65% prefetch), recursive cgroups v2 slice priority binding (interactive preemption with 250ms deadline), and circular double-buffered JIT attention layer prefetching.</td>
+              <td>Host OS responsiveness preserved under GPU saturation; zero unhandled VRAM allocations; sub-250ms preemption of background workloads.</td>
             </tr>
           </tbody>
         </table>
