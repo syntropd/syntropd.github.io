@@ -1045,6 +1045,7 @@ NoNewPrivileges=true
 
 # Varlink Delegation & Runtime
 RuntimeDirectory=syntrop
+RuntimeDirectoryPreserve=yes
 EOF
 
   # 3. toold.socket & toold.service
