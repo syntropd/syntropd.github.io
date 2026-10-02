@@ -1574,7 +1574,7 @@ EOF
 
   systemctl daemon-reload
   log_ok "Systemd units and aliases successfully registered and daemon reloaded."
-  result "17 units registered."
+  result "18 units registered."
 }
 
 # ----------------- Start & Activate -----------------
