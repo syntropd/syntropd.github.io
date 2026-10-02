@@ -1589,7 +1589,7 @@ CapabilityBoundingSet=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
 AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
 ProtectSystem=strict
 ConfigurationDirectory=syntrop
-RuntimeDirectory=syntrop
+ReadWritePaths=/run/syntrop
 SyslogIdentifier=syntrop-tuning
 
 [Install]
