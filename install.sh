@@ -519,6 +519,7 @@ d /var/lib/toold 0775 root syntrop -
 d /var/lib/contextd 0775 root syntrop -
 d /var/lib/contextd/diffs 0775 root syntrop -
 L+ /run/syntrop/io.syntrop.Sentry1 - - - - /run/systemd-sentry/sentry.sock
+L+ /run/syntrop/io.syntrop.Telemetry1 - - - - io.syntrop.Inference1
 EOF
   systemd-tmpfiles --create /etc/tmpfiles.d/syntrop.conf 2>/dev/null || true
 
@@ -1572,9 +1573,31 @@ WantedBy=graphical-session.target
 EOF
   chmod 0644 "${user_unit_dir}/syntrop-companion.service"
 
+  # 13. System unit: syntrop-tuning.service
+  cat <<'EOF' > "${UNIT_DIR}/syntrop-tuning.service"
+[Unit]
+Description=syntropd Dynamic Kernel Telemetry & Closed-Loop Tuning Governor
+Documentation=https://syntropd.github.io/manual.html
+After=syntrop-sockets.target
+PartOf=syntrop-sockets.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/syntropctl telemetry tune --policy balanced
+CapabilityBoundingSet=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
+AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
+ProtectSystem=strict
+SyslogIdentifier=syntrop-tuning
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  chmod 0644 "${UNIT_DIR}/syntrop-tuning.service"
+
   systemctl daemon-reload
   log_ok "Systemd units and aliases successfully registered and daemon reloaded."
-  result "18 units registered."
+  result "19 units registered."
 }
 
 # ----------------- Start & Activate -----------------
@@ -1609,6 +1632,11 @@ activate_subsystem() {
     systemctl restart "${sockets[@]}" syntrop-sockets.target
     log_ok "syntrop-sockets.target and activation sockets restarted."
     result "Sockets live."
+
+    log_info "Enabling and applying syntrop-tuning.service dynamic governor..."
+    systemctl enable syntrop-tuning.service 2>/dev/null || true
+    systemctl start syntrop-tuning.service 2>/dev/null || true
+
 
     if [[ "${VERBOSITY}" -ge 2 ]]; then
       echo ""

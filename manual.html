@@ -566,6 +566,63 @@ PrivateTmp=true
 WantedBy=graphical-session.target</code></pre>
     </section>
 
+    <!-- SECTION 9: Closed-Loop Kernel Telemetry & Dynamic PSI Tuning -->
+    <section class="section" id="telemetry">
+      <div class="section-badge">Section 9</div>
+      <h2>Closed-Loop Kernel Telemetry &amp; Dynamic PSI Tuning</h2>
+      <p class="section-lead">
+        <code>syn telemetry</code> and <code>syn tune</code> (backed by <code>syntropctl telemetry</code>) provide real-time zero-allocation kernel Pressure Stall Information (PSI) ingestion and eBPF scheduler latency telemetry, driving closed-loop dynamic throttling and speculative decoding governors across the subsystem.
+      </p>
+
+      <div class="code-header">
+        <span>Kernel Telemetry &amp; Dynamic Tuning CLI (`syn telemetry`, `syn tune`)</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code># Inspect instantaneous kernel PSI pressure and eBPF runqueue latency
+syn telemetry status
+syn telemetry status --json
+
+# Query or adjust closed-loop dynamic tuning governor policy
+syn tune --policy balanced
+syn tune --policy aggressive
+syn tune --policy conservative
+
+# Manage the systemd governor unit
+systemctl status syntrop-tuning.service</code></pre>
+
+      <div class="code-header">
+        <span>Systemd Governor Unit Configuration (`syntrop-tuning.service`)</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>[Unit]
+Description=syntropd Dynamic Kernel Telemetry &amp; Closed-Loop Tuning Governor
+Documentation=https://syntropd.github.io/manual.html
+After=syntrop-sockets.target
+PartOf=syntrop-sockets.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/syntropctl telemetry tune --policy balanced
+CapabilityBoundingSet=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
+AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
+ProtectSystem=strict
+SyslogIdentifier=syntrop-tuning
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+      <h3>Dynamic Telemetry Architecture</h3>
+      <p>
+        The kernel telemetry architecture operates with zero heap allocations during steady-state polling:
+      </p>
+      <ul>
+        <li><strong>Non-Blocking Stack Buffering:</strong> Uses fixed <code>[u8; 64]</code> stack buffers to read <code>/proc/pressure/{memory,cpu,io}</code> via non-blocking file descriptors, parsing <code>avg10=</code> thresholds without memory allocation.</li>
+        <li><strong>eBPF Tracepoint Latency Probe:</strong> Attaches to kernel scheduler tracepoints (<code>sched:sched_stat_runtime</code>, <code>sched:sched_switch</code>) with automatic capability probing. If unprivileged BPF is disabled (<code>/proc/sys/kernel/unprivileged_bpf_disabled</code>), falls back gracefully to runnable thread ratios from <code>/proc/loadavg</code>.</li>
+        <li><strong>Closed-Loop Throttling:</strong> When memory pressure spikes (<code>some &gt; 25.0%</code> or <code>full &gt; 10.0%</code> under balanced policy), <code>routerd</code> clamps batch sizes, shortens speculative draft horizons ($K \to 1$), and invokes proactive KV cache compaction (<code>io.syntrop.Runtime1.CompactKvCache</code>). Under CPU contention spikes, speculative threads yield cooperatively (250ms deadline).</li>
+      </ul>
+    </section>
+
   </main>
 
   <!-- Site Footer -->
