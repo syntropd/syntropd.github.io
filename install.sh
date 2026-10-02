@@ -1588,6 +1588,8 @@ ExecStart=/usr/local/bin/syntropctl telemetry tune --policy balanced
 CapabilityBoundingSet=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
 AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
 ProtectSystem=strict
+ConfigurationDirectory=syntrop
+RuntimeDirectory=syntrop
 SyslogIdentifier=syntrop-tuning
 
 [Install]
