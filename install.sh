@@ -37,7 +37,7 @@
 
 set -euo pipefail
 
-VERSION="0.4.0"
+VERSION="0.5.0"
 PREFIX="/usr/local"
 BIN_DIR="${PREFIX}/bin"
 UNIT_DIR="/etc/systemd/system"
@@ -47,6 +47,7 @@ RUN_SENTRY_DIR="/run/systemd-sentry"
 MODEL_DIR="/var/lib/models"
 ROLLBACK_DIR="/var/lib/syntrop/rollbacks"
 TOOLD_DIR="/var/lib/toold"
+COMPLETIONS_DIR="/usr/share/bash-completion/completions"
 START_SOCKETS=true
 DRY_RUN=false
 UNINSTALL=false
@@ -361,6 +362,7 @@ do_uninstall() {
         "${BIN_DIR}/syntropd" \
         "${BIN_DIR}/syntrop" \
         "${BIN_DIR}/syn"
+  rm -f "${COMPLETIONS_DIR}/syn" "${COMPLETIONS_DIR}/syntrop"
 
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     local user_home
@@ -477,6 +479,7 @@ provision_system() {
   mkdir -p "${ROLLBACK_DIR}"
   mkdir -p "${TOOLD_DIR}"
   mkdir -p "${UNIT_DIR}"
+  mkdir -p "${COMPLETIONS_DIR}"
 
   chown root:syntrop "${RUN_DIR}"
   chmod 0775 "${RUN_DIR}"
@@ -487,9 +490,9 @@ provision_system() {
   chown root:syntrop "${MODEL_DIR}"
   chmod 0775 "${MODEL_DIR}"
 
-  mkdir -p "${MODEL_DIR}/gguf"
-  chown root:syntrop "${MODEL_DIR}/gguf"
-  chmod 0775 "${MODEL_DIR}/gguf"
+  mkdir -p "${MODEL_DIR}/gguf" "${MODEL_DIR}/cas" "${MODEL_DIR}/cas/incoming" "${MODEL_DIR}/cas/blobs" "${MODEL_DIR}/tags" "${MODEL_DIR}/pinned"
+  chown -R root:syntrop "${MODEL_DIR}"
+  chmod 0775 "${MODEL_DIR}" "${MODEL_DIR}/gguf" "${MODEL_DIR}/cas" "${MODEL_DIR}/cas/incoming" "${MODEL_DIR}/cas/blobs" "${MODEL_DIR}/tags" "${MODEL_DIR}/pinned"
 
   chown root:syntrop "${TOOLD_DIR}"
   chmod 0775 "${TOOLD_DIR}"
@@ -515,6 +518,11 @@ d /run/systemd-sentry 0775 sentry syntrop -
 d /var/lib/syntrop 0775 syntrop syntrop -
 d /var/lib/models 0775 root syntrop -
 d /var/lib/models/gguf 0775 root syntrop -
+d /var/lib/models/cas 0775 root syntrop -
+d /var/lib/models/cas/incoming 0775 root syntrop -
+d /var/lib/models/cas/blobs 0775 root syntrop -
+d /var/lib/models/tags 0775 root syntrop -
+d /var/lib/models/pinned 0775 root syntrop -
 d /var/lib/toold 0775 root syntrop -
 d /var/lib/contextd 0775 root syntrop -
 d /var/lib/contextd/diffs 0775 root syntrop -
@@ -800,6 +808,20 @@ install_binaries() {
   # Short alias for the front door (revocable; syntrop stays canonical).
   ln -sf "${BIN_DIR}/syntrop" "${BIN_DIR}/syn"
   log_ok "Linked ${BIN_DIR}/syn -> syntrop."
+
+  # Native shell completions for syn and syntrop
+  if [[ -x "${BIN_DIR}/syn" ]]; then
+    mkdir -p "${COMPLETIONS_DIR}"
+    if "${BIN_DIR}/syn" completions bash > "${COMPLETIONS_DIR}/syn.tmp" 2>/dev/null; then
+      chmod 0644 "${COMPLETIONS_DIR}/syn.tmp"
+      mv -f "${COMPLETIONS_DIR}/syn.tmp" "${COMPLETIONS_DIR}/syn"
+      ln -sf "syn" "${COMPLETIONS_DIR}/syntrop"
+      log_ok "Installed bash completions to ${COMPLETIONS_DIR}/syn."
+    else
+      rm -f "${COMPLETIONS_DIR}/syn.tmp"
+      log_warn "Failed to generate bash completion script from ${BIN_DIR}/syn."
+    fi
+  fi
 
   if [[ ${fresh_count} -eq 0 ]]; then
     result "${verified_count}/${#binaries[@]} programs ready (already installed)."
@@ -1252,6 +1274,7 @@ DeviceAllow=/dev/dri/renderD* rw
 DeviceAllow=/dev/accel/* rw
 DeviceAllow=/dev/hailo* rw
 DeviceAllow=/dev/kfd rw
+DeviceAllow=char-nvidia* rw
 
 # cgroup v2 & systemd-oomd Protection
 ManagedOOMPreference=avoid
