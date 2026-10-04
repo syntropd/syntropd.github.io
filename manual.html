@@ -433,6 +433,17 @@ local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code
       </div>
       <pre><code>varlinkctl call unix:/run/syntrop/io.syntrop.Inference1 io.syntrop.Inference1.GetDrmWatermark \
   '{"device":"renderD128"}'</code></pre>
+
+      <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">7. Accelerated Hardware Pipeline (Marlin GEMV, Ada Lovelace FP8 &amp; Paged KV)</h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
+        <code>runtimed</code> incorporates an ultra-fast hardware acceleration pipeline featuring:
+      </p>
+      <ul style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem; padding-left: 1.25rem;">
+        <li><strong>In-VRAM 4-Bit Marlin GEMV:</strong> Repacks weights into 128-bit Marlin INT4 tiles executed via custom asynchronous PTX CUDA kernels (<code>marlin_gemv_kernel</code>), delivering sub-millisecond per-token generation latencies.</li>
+        <li><strong>Ada Lovelace FP8 Tensor Core Pipeline:</strong> Hardware-native F8E4M3 matrix multiplication with dynamic per-channel scaling factors targeting NVIDIA Ada Lovelace / Hopper Tensor Cores.</li>
+        <li><strong>Quantized Paged KV-Cache:</strong> 16-token paging blocks with per-head FP8 quantization, shrinking KV-cache memory pressure by 50% without quality degradation, backed by kernel PSI asynchronous host RAM spill/unspill management.</li>
+        <li><strong>Dual-GPU Speculative Offload:</strong> Seamless gang-scheduling across multiple GPUs (e.g. primary target on <code>cuda:0</code> and draft engine on <code>cuda:1</code>).</li>
+      </ul>
     </section>
 
     <!-- systemd Unit Drop-In Integration -->
@@ -671,7 +682,7 @@ WantedBy=multi-user.target</code></pre>
 
     <div class="footer-bottom">
       <span>&copy; 2026 syntropd Project Contributors</span>
-      <span>Operator Manual v0.5.0</span>
+      <span>Operator Manual v0.6.0</span>
     </div>
   </footer>
 

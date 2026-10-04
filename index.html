@@ -13,7 +13,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-banner">
-    <span><span class="badge">v0.5.0</span> 8 Modular Components • Pure Rust • 7 Frontiers • Zero-Copy CAS • Port 32768 Ingress</span>
+    <span><span class="badge">v0.6.0</span> 8 Modular Components • Pure Rust • 7 Frontiers • Zero-Copy CAS • Port 32768 Ingress</span>
   </div>
 
   <!-- Header & Navigation -->
@@ -234,9 +234,11 @@
             Owned-engine neural inference: text, vision, and embeddings with zero dynamic C dependencies in the CPU build, lazy socket activation, and zero background idle memory.
           </p>
           <ul class="daemon-features">
+            <li>In-VRAM 4-bit Marlin GEMV &amp; INT4 tiling</li>
+            <li>Ada Lovelace FP8 Tensor Core pipeline</li>
+            <li>Quantized paged KV-cache (16-token FP8 blocks)</li>
+            <li>Dual-GPU speculative decoding offload</li>
             <li>GGUF engine: Gemma4/Qwen2, vision, LoRA</li>
-            <li>128-dim normalized semantic embeddings</li>
-            <li>syntrop-runtime unprivileged isolation</li>
             <li>Socket-activated lifecycle with clean exit</li>
           </ul>
           <div class="daemon-footer">
