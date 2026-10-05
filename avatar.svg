@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg-grad-syntrop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1320"/>
+      <stop offset="100%" stop-color="#080c14"/>
+    </linearGradient>
+    <filter id="glow-syntrop" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#080c14"/>
+  <circle cx="512" cy="512" r="380" stroke="#142030" stroke-width="2" fill="none"/>
+  <circle cx="512" cy="512" r="280" stroke="#142030" stroke-width="2" fill="none"/>
+  
+  <rect x="112" y="112" width="800" height="800" rx="160" fill="url(#bg-grad-syntrop)" stroke="#00d2b4" stroke-width="8" filter="url(#glow-syntrop)"/>
+  
+  <path d="M152 188 L152 152 L188 152 M836 152 L872 152 L872 188 M152 836 L152 872 L188 872 M836 872 L872 872 L872 836" stroke="#38bdf8" stroke-width="4" fill="none"/>
+  
+  <text x="512" y="210" text-anchor="middle" font-family="Liberation Mono, monospace" font-size="30" font-weight="700" fill="#38bdf8" letter-spacing="3">LINUX // NATIVE SUBSYSTEM</text>
+  
+  <!-- Hexagon Outer Boundary -->
+  <polygon points="512,220 687,322 687,527 512,630 337,527 337,322" fill="none" stroke="#00d2b4" stroke-width="8" stroke-linejoin="round"/>
+  
+  <!-- Inner Spoke Lines -->
+  <line x1="512" y1="230" x2="512" y2="390" stroke="#38bdf8" stroke-width="7" stroke-linecap="round"/>
+  <line x1="677" y1="520" x2="534" y2="445" stroke="#38bdf8" stroke-width="7" stroke-linecap="round"/>
+  <line x1="347" y1="520" x2="490" y2="445" stroke="#38bdf8" stroke-width="7" stroke-linecap="round"/>
+  
+  <!-- Vertex Nodes -->
+  <circle cx="512" cy="220" r="14" fill="#38bdf8"/>
+  <circle cx="687" cy="322" r="14" fill="#38bdf8"/>
+  <circle cx="687" cy="527" r="14" fill="#00d2b4"/>
+  <circle cx="512" cy="630" r="14" fill="#00d2b4"/>
+  <circle cx="337" cy="527" r="14" fill="#00d2b4"/>
+  <circle cx="337" cy="322" r="14" fill="#38bdf8"/>
+  
+  <!-- Center Core Node -->
+  <circle cx="512" cy="425" r="40" fill="#00d2b4" opacity="0.3"/>
+  <circle cx="512" cy="425" r="32" fill="#00d2b4"/>
+  <circle cx="512" cy="425" r="12" fill="#ffffff"/>
+  
+  <!-- Wordmark -->
+  <text x="512" y="700" text-anchor="middle" font-family="Liberation Mono, monospace" font-size="88" font-weight="700" fill="#ffffff" letter-spacing="2">syntropd</text>
+  <text x="512" y="770" text-anchor="middle" font-family="Liberation Mono, monospace" font-size="26" font-weight="400" fill="#94a3b8" letter-spacing="3">NEGATIVE ENTROPY // PID 1 INVIOLABLE</text>
+</svg>
