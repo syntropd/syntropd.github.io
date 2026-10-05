@@ -19,6 +19,7 @@
 #   --purge             Used with --uninstall to also purge configs, caches, user/group
 #   --no-start          Install units but do not enable or start sockets
 #   --user <USER>       Enroll specific user into 'syntrop' group (defaults to SUDO_USER)
+#   --hf-token <TOKEN>  Hugging Face token for authenticated downloads
 #   --local <PATH>      Install from a local source checkout instead of the
 #                       GitHub release bundle (default); PATH is the projects
 #                       root containing each daemon directory
@@ -54,6 +55,7 @@ UNINSTALL=false
 PURGE=false
 LOCAL_SRC=""
 TARGET_USER="${SUDO_USER:-}"
+HF_TOKEN="${HF_TOKEN:-${HUGGING_FACE_HUB_TOKEN:-}}"
 WITH_GEMMA=true
 WITH_STARTER=false
 WITH_VISION=false
@@ -156,6 +158,10 @@ while [[ $# -gt 0 ]]; do
       TARGET_USER="$2"
       shift 2
       ;;
+    --hf-token)
+      HF_TOKEN="$2"
+      shift 2
+      ;;
     --local)
       LOCAL_SRC="$2"
       shift 2
@@ -188,7 +194,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,36p' "$0" | sed 's/^# //'
+      sed -n '2,37p' "$0" | sed 's/^# //'
       exit 0
       ;;
     *)
@@ -874,12 +880,16 @@ fetch_model() {
   local tmp="${dest}.part"
   rm -f "${tmp}"
   local total=""
+  local auth_header=()
+  if [[ -n "${HF_TOKEN}" && "${url}" == *"huggingface.co"* ]]; then
+    auth_header=(-H "Authorization: Bearer ${HF_TOKEN}")
+  fi
   if [[ "${VERBOSITY}" -ge 1 ]] && is_tty; then
-    total="$(curl -fsSIL --max-time 20 "${url}" 2>/dev/null | awk '/^[Cc]ontent-[Ll]ength:/ {len=$2} END {print len}' | tr -d '\r')"
+    total="$(curl -fsSIL --max-time 20 "${auth_header[@]+"${auth_header[@]}"}" "${url}" 2>/dev/null | awk '/^[Cc]ontent-[Ll]ength:/ {len=$2} END {print len}' | tr -d '\r')"
   fi
   if [[ "${total}" =~ ^[0-9]+$ && "${total}" -gt 0 ]]; then
     log_info "Downloading ${name} ($(human_size "${total}"))..."
-    curl -fsSL --retry 3 --retry-delay 2 -o "${tmp}" "${url}" 2>/dev/null &
+    curl -fsSL --retry 3 --retry-delay 2 "${auth_header[@]+"${auth_header[@]}"}" -o "${tmp}" "${url}" 2>/dev/null &
     local curl_pid=$!
     local have=0
     while kill -0 "${curl_pid}" 2>/dev/null; do
@@ -902,7 +912,7 @@ fetch_model() {
   else
     if [[ "${VERBOSITY}" -ge 1 ]]; then echo "   ↓ ${name}..."; fi
     log_info "Downloading ${name}..."
-    if ! curl -fSL --retry 3 --retry-delay 2 -o "${tmp}" "${url}"; then
+    if ! curl -fSL --retry 3 --retry-delay 2 "${auth_header[@]+"${auth_header[@]}"}" -o "${tmp}" "${url}"; then
       rm -f "${tmp}"
       log_error "Download failed: ${url}"
       log_error "Check your connection and re-run the installer to resume."
@@ -921,6 +931,30 @@ install_models() {
     log_info "--no-models: skipping model downloads (engine only)."
     result "Engine only, no brains."
     return 0
+  fi
+
+  local target_home=""
+  if [[ -n "${TARGET_USER}" ]]; then
+    target_home="$(eval echo "~${TARGET_USER}" 2>/dev/null || echo "")"
+  fi
+  if [[ -z "${target_home}" || ! -d "${target_home}" ]]; then
+    target_home="${HOME:-}"
+  fi
+
+  local hf_token_file=""
+  if [[ -n "${target_home}" ]]; then
+    hf_token_file="${target_home}/.cache/huggingface/token"
+  fi
+
+  if [[ -z "${HF_TOKEN}" && -n "${hf_token_file}" && -f "${hf_token_file}" ]]; then
+    HF_TOKEN="$(tr -d '[:space:]' < "${hf_token_file}" 2>/dev/null || true)"
+    if [[ -n "${HF_TOKEN}" ]]; then
+      log_ok "Detected Hugging Face credentials in ${hf_token_file}."
+    fi
+  fi
+
+  if [[ -n "${HF_TOKEN}" ]]; then
+    export HF_TOKEN
   fi
 
   # Brain fit: the CPU engine holds weights as F32, so the 5B Gemma needs
@@ -945,6 +979,9 @@ install_models() {
   fi
 
   if [[ "${DRY_RUN}" == "true" ]]; then
+    if [[ -n "${HF_TOKEN}" ]]; then
+      log_ok "Hugging Face credentials configured (authenticated CDN enabled)."
+    fi
     log_info "[DRY-RUN] Would download models into ${MODEL_DIR}/gguf:"
     if [[ "${WITH_GEMMA}" == "true" ]]; then log_info "[DRY-RUN]   gemma-4-E2B-it-Q4_K_M.gguf (3.1 GB)"; fi
     if [[ "${WITH_STARTER}" == "true" ]]; then log_info "[DRY-RUN]   qwen2.5-0.5b-instruct-q8_0.gguf + tokenizer (~700 MB)"; fi
@@ -957,6 +994,47 @@ install_models() {
     log_error "Install curl or re-run with --no-models."
     exit 1
   }
+
+  if [[ -z "${HF_TOKEN}" ]]; then
+    local tty_input=""
+    if [[ -t 0 ]]; then
+      tty_input="/dev/stdin"
+    elif [[ -t 1 && -c /dev/tty ]] && ( exec < /dev/tty ) 2>/dev/null; then
+      tty_input="/dev/tty"
+    fi
+    if [[ -n "${tty_input}" ]]; then
+      echo ""
+      echo -e "${BOLD}[Hugging Face Authentication]${RESET}"
+      echo "Providing a Hugging Face token enables unthrottled downloads and access to gated models."
+      echo -n "Enter Hugging Face Token (press Enter to skip): "
+      local entered_token=""
+      read -r entered_token < "${tty_input}" || entered_token=""
+      entered_token="$(echo "${entered_token}" | tr -d '[:space:]')"
+      if [[ -n "${entered_token}" ]]; then
+        HF_TOKEN="${entered_token}"
+        export HF_TOKEN
+      else
+        log_info "Continuing with unauthenticated access."
+      fi
+    fi
+  fi
+
+  if [[ -n "${HF_TOKEN}" ]]; then
+    if [[ -n "${target_home}" && -d "${target_home}" ]]; then
+      mkdir -p "${target_home}/.cache/huggingface"
+      echo -n "${HF_TOKEN}" > "${target_home}/.cache/huggingface/token"
+      chmod 0600 "${target_home}/.cache/huggingface/token"
+      if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
+        chown -R "${TARGET_USER}:${TARGET_USER}" "${target_home}/.cache/huggingface" 2>/dev/null || true
+      fi
+      log_ok "Saved Hugging Face token to ${target_home}/.cache/huggingface/token."
+    fi
+    if [[ -n "${HOME:-}" && "${HOME}" != "${target_home}" && -d "${HOME}" ]]; then
+      mkdir -p "${HOME}/.cache/huggingface"
+      echo -n "${HF_TOKEN}" > "${HOME}/.cache/huggingface/token"
+      chmod 0600 "${HOME}/.cache/huggingface/token"
+    fi
+  fi
 
   log_info "Fetching models into ${MODEL_DIR}/gguf..."
   mkdir -p "${MODEL_DIR}/gguf"
