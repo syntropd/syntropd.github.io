@@ -1,5 +1,21 @@
 # Syntropd Suite Changelog
 
+## 0.6.2 (2026-10-05) — Sovereign Substrate Boundaries, Core Decoupling & Polkit Suppression
+
+### Substrate Boundary & openOODA Port (`runtimed`)
+- **Port Trait Substrate Boundary**: Implemented `SubstratePort` trait boundary in `runtimed-model`, encapsulating direct Candle tensor operations and CUDA kernels (`fp8_gemm`, `marlin_gemv`) inside `CandleSubstrate`.
+- **Architecture Decoupling**: Decoupled Qwen2, Gemma4, Granite, and Phi3 decoder architectures and sampling policies from raw candle dependencies.
+- **Async-in-Core Elimination**: Decoupled `spawn_psi_monitor` and PipeWire audio capture to `runtimed-daemon`, keeping `runtimed-core` strictly synchronous.
+
+### Sandboxed Action Runner (`toold`)
+- **Core Decoupling**: Decoupled async runners, repair loops, and code completers into `toold-daemon`, leaving `toold-core` purely synchronous with zero async runtime dependencies.
+
+### Threat Model Hardening (`syntropctl`)
+- **Polkit & Elevated Auth Focus Suppression**: Implemented active window title and process tree inspection to detect elevated authentication dialogs (Polkit, `pkexec`, sudo) and immediately abort automated desktop actuation.
+
+### Suite Synchronization
+- Coordinated release `v0.6.2` across all 10 ecosystem repositories with unified workspace dependency alignment.
+
 ## 0.6.0 (2026-10-04) — Accelerated Hardware Pipelines & Ada Lovelace Tensor Cores
 
 ### Neural Inference Engine (`runtimed`)
