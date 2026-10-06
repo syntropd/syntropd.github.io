@@ -410,10 +410,14 @@ provision_system() {
     return 0
   fi
 
-  # 1. System group: syntrop
+  # 1. System groups: syntrop and syntropd
   if ! getent group syntrop >/dev/null 2>&1; then
     groupadd -r syntrop
     log_ok "Created system group: syntrop"
+  fi
+  if ! getent group syntropd >/dev/null 2>&1; then
+    groupadd -r syntropd 2>/dev/null || true
+    log_ok "Created system group: syntropd"
   fi
 
   # 2. System user: sentry
@@ -468,13 +472,40 @@ provision_system() {
     fi
   done
 
-  # 3. User enrollment for unprivileged IPC socket access
+  # 3. User enrollment for unprivileged IPC socket and model access
+  local target_users=()
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
-    if id "${TARGET_USER}" >/dev/null 2>&1; then
-      usermod -aG syntrop "${TARGET_USER}"
-      log_ok "Added user '${TARGET_USER}' to group 'syntrop' for unprivileged IPC access."
-    fi
+    target_users+=("${TARGET_USER}")
   fi
+  if [[ -n "${SUDO_USER:-}" && "${SUDO_USER}" != "root" ]] && ! printf '%s\n' "${target_users[@]}" | grep -qx "${SUDO_USER}"; then
+    target_users+=("${SUDO_USER}")
+  fi
+  if command -v loginctl >/dev/null 2>&1; then
+    while read -r _u; do
+      if [[ -n "$_u" && "$_u" != "root" ]] && ! printf '%s\n' "${target_users[@]}" | grep -qx "$_u"; then
+        target_users+=("$_u")
+      fi
+    done < <(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}')
+  fi
+  if [[ ${#target_users[@]} -eq 0 ]]; then
+    while IFS=: read -r u _ uid _ _ _ s; do
+      if [[ "$uid" -ge 1000 && "$uid" -lt 60000 && "$u" != "nobody" && "$s" != */nologin && "$s" != */false ]]; then
+        target_users+=("$u")
+      fi
+    done < /etc/passwd
+  fi
+
+  if [[ -z "${TARGET_USER}" && ${#target_users[@]} -gt 0 ]]; then
+    TARGET_USER="${target_users[0]}"
+  fi
+
+  for tu in "${target_users[@]}"; do
+    if id "$tu" >/dev/null 2>&1; then
+      usermod -aG syntrop "$tu" 2>/dev/null || true
+      usermod -aG syntropd "$tu" 2>/dev/null || true
+      log_ok "Enrolled user '${tu}' in groups 'syntrop' and 'syntropd' for unprivileged IPC access."
+    fi
+  done
 
   # 4. System directories
   mkdir -p "${BIN_DIR}"
@@ -514,14 +545,15 @@ provision_system() {
   chown syntrop:syntrop /var/lib/syntrop 2>/dev/null || true
   chmod 0775 /var/lib/syntrop
 
-  chown root:root "${CONFIG_DIR}"
-  chmod 0755 "${CONFIG_DIR}"
+  chown root:syntrop "${CONFIG_DIR}"
+  chmod 0775 "${CONFIG_DIR}"
 
-  # Provision systemd tmpfiles.d definition so /run/syntrop is permanently preserved
+  # Provision systemd tmpfiles.d definition so /run/syntrop and persistent directories are permanently preserved
   cat <<'EOF' > /etc/tmpfiles.d/syntrop.conf
 d /run/syntrop 0775 root syntrop -
 d /run/systemd-sentry 0775 sentry syntrop -
 d /var/lib/syntrop 0775 syntrop syntrop -
+d /etc/syntrop 0775 root syntrop -
 d /var/lib/models 0775 root syntrop -
 d /var/lib/models/gguf 0775 root syntrop -
 d /var/lib/models/cas 0775 root syntrop -
@@ -536,6 +568,48 @@ L+ /run/syntrop/io.syntrop.Sentry1 - - - - /run/systemd-sentry/sentry.sock
 L+ /run/syntrop/io.syntrop.Telemetry1 - - - - io.syntrop.Inference1
 EOF
   systemd-tmpfiles --create /etc/tmpfiles.d/syntrop.conf 2>/dev/null || true
+
+  # Declarative sysusers configuration for syntrop subsystem daemons
+  mkdir -p /etc/sysusers.d
+  cat <<'EOF' > /etc/sysusers.d/syntrop.conf
+# /etc/sysusers.d/syntrop.conf
+# Declarative sysusers configuration for syntrop subsystem daemons
+g syntrop -
+g syntropd -
+u syntrop - "syntropd AI Subsystem" /var/lib/syntrop /usr/sbin/nologin
+u sentry - "syntropd Sentry Supervisor" /var/lib/systemd-sentry /usr/sbin/nologin
+m sentry systemd-journal
+u inferenced - "Syntropd Hardware Arbiter" /var/lib/inferenced /usr/sbin/nologin
+m inferenced video
+m inferenced render
+m inferenced sentry
+u modeld - "Syntropd Model Store" /var/lib/models /usr/sbin/nologin
+u syntrop-runtime - "Syntropd Runtime Daemon" /var/lib/models /usr/sbin/nologin
+m syntrop-runtime video
+m syntrop-runtime render
+u syntrop-tool - "Syntropd Tool Daemon" /var/lib/toold /usr/sbin/nologin
+m syntrop-tool systemd-journal
+u syntrop-context - "Syntropd Context Daemon" /var/lib/contextd /usr/sbin/nologin
+u syntrop-admin - "Syntropd Autonomous Healing Admin" /var/lib/syntrop /usr/sbin/nologin
+m syntrop-admin systemd-journal
+EOF
+  for tu in "${target_users[@]}"; do
+    echo "m ${tu} syntrop" >> /etc/sysusers.d/syntrop.conf
+    echo "m ${tu} syntropd" >> /etc/sysusers.d/syntrop.conf
+  done
+  systemd-sysusers /etc/sysusers.d/syntrop.conf 2>/dev/null || true
+
+  # 5. POSIX ACLs for immediate access in current unprivileged session without newgrp/logout
+  if command -v setfacl >/dev/null 2>&1; then
+    for tu in "${target_users[@]}"; do
+      setfacl -m "u:${tu}:rwx" "${RUN_DIR}" "${MODEL_DIR}" "${CONFIG_DIR}" /var/lib/syntrop 2>/dev/null || true
+      setfacl -R -m "u:${tu}:rwx" "${MODEL_DIR}" "${CONFIG_DIR}" 2>/dev/null || true
+      setfacl -d -m "u:${tu}:rwx" "${MODEL_DIR}" "${RUN_DIR}" "${CONFIG_DIR}" 2>/dev/null || true
+      setfacl -d -m "g:syntrop:rwx" "${MODEL_DIR}" "${RUN_DIR}" "${CONFIG_DIR}" 2>/dev/null || true
+      setfacl -d -m "g:syntropd:rwx" "${MODEL_DIR}" "${RUN_DIR}" "${CONFIG_DIR}" 2>/dev/null || true
+    done
+    log_ok "Applied POSIX ACLs for immediate unprivileged shell access."
+  fi
 
   # Deploy default routerd.toml if missing
   if [[ ! -f "${CONFIG_DIR}/routerd.toml" ]]; then
@@ -1776,10 +1850,10 @@ activate_subsystem() {
     echo ""
   fi
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
-    echo -e "${YELLOW}[NOTE]${RESET} User '${TARGET_USER}' was enrolled in group 'syntrop'."
-    echo "       To apply the new group to your current terminal session, run:"
-    echo -e "         ${BOLD}newgrp syntrop${RESET}"
-    echo "       or log out and back in."
+    echo -e "${GREEN}[OK]${RESET} User '${TARGET_USER}' enrolled in 'syntrop' & 'syntropd' with direct filesystem ACLs."
+    echo "     Your current terminal session has immediate unprivileged access."
+    echo "     To apply group membership to existing background subshells, you can run:"
+    echo -e "       ${BOLD}newgrp syntrop${RESET}"
     echo ""
   fi
   echo "To diagnose a failed unit root-cause:"
