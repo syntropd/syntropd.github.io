@@ -1326,6 +1326,12 @@ Type=notify
 User=syntrop-runtime
 Group=syntrop
 Environment="RUNTIMED_IDLE_UNLOAD_SECS=300"
+# CPU affinity and multi-core threading: runtimed auto-detects physical
+# CPU cores and initializes Candle and Rayon thread pools out-of-the-box.
+# Explicit threading overrides can be configured via drop-in units in
+# /etc/systemd/system/runtimed.service.d/*.conf:
+# Environment="CANDLE_NUM_THREADS=4"
+# Environment="RAYON_NUM_THREADS=4"
 ExecStart=${BIN_DIR}/runtimed
 Restart=on-failure
 RestartSec=2s
@@ -1358,7 +1364,7 @@ DeviceAllow=char-accel rw
 # the ceiling must clear it (smaller brains never approach these).
 MemoryHigh=24G
 MemoryMax=32G
-TasksMax=64
+TasksMax=512
 EOF
 
   # 5. inferenced.socket & inferenced.service
