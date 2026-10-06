@@ -127,41 +127,54 @@
       </p>
 
       <!-- Tab 2: Distribution Packages -->
-      <h3 style="font-size: 1.1rem; margin-top: 2rem; color: var(--cyan);">2. Distribution Package Managers</h3>
+      <h3 id="distribution-packages" style="font-size: 1.1rem; margin-top: 2rem; color: var(--cyan);">2. Distribution Package Managers</h3>
 
       <div style="margin-top: 1rem;">
-        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main);">Fedora / RHEL / CentOS Stream:</span>
+        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main);">Fedora / RHEL / CentOS Stream (DNF / RPM):</span>
         <div class="code-header" style="margin-top: 0.4rem;">
           <span>Terminal</span>
           <button class="copy-btn">Copy</button>
         </div>
-        <pre><code>sudo dnf copr enable syntropd/release
-sudo dnf install syntropd syntropctl</code></pre>
+        <pre><code># Option A: Enable Copr repository and install via dnf
+sudo dnf copr enable syntropd/release
+sudo dnf install -y syntropd syntropctl
+
+# Option B: Build local RPM package from spec
+rpmbuild -ba packaging/rpm/syntropd.spec</code></pre>
       </div>
 
       <div style="margin-top: 1.25rem;">
-        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main);">Debian / Ubuntu:</span>
+        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main);">Debian / Ubuntu / Pop!_OS (APT / DEB):</span>
         <div class="code-header" style="margin-top: 0.4rem;">
           <span>Terminal</span>
           <button class="copy-btn">Copy</button>
         </div>
-        <pre><code>sudo install -m 0755 -d /etc/apt/keyrings
+        <pre><code># Option A: Add official APT repository
+sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://syntropd.github.io/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/syntropd.gpg
 echo "deb [signed-by=/etc/apt/keyrings/syntropd.gpg] https://syntropd.github.io/deb stable main" | sudo tee /etc/apt/sources.list.d/syntropd.list
-sudo apt-get update &amp;&amp; sudo apt-get install -y syntropd syntropctl</code></pre>
+sudo apt-get update && sudo apt-get install -y syntropd syntropctl
+
+# Option B: Build local Debian package
+dpkg-buildpackage -us -uc -b</code></pre>
       </div>
 
       <div style="margin-top: 1.25rem;">
-        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main);">Arch Linux (AUR):</span>
+        <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-main);">Arch Linux / Omarchy / Manjaro (PKGBUILD / Pacman):</span>
         <div class="code-header" style="margin-top: 0.4rem;">
           <span>Terminal</span>
           <button class="copy-btn">Copy</button>
         </div>
-        <pre><code>yay -S syntropd-bin syntropctl-bin</code></pre>
+        <pre><code># Option A: Native PKGBUILD build from source (recommended for Omarchy / Arch)
+git clone https://github.com/syntropd/syntropd.git
+cd syntropd/packaging/arch && makepkg -si
+
+# Option B: Install via AUR helper
+yay -S syntropd syntropctl</code></pre>
       </div>
 
       <!-- Tab 3: Cargo / crates.io -->
-      <h3 style="font-size: 1.1rem; margin-top: 2rem; color: var(--teal);">3. Rust Toolchain / crates.io</h3>
+      <h3 id="cargo" style="font-size: 1.1rem; margin-top: 2rem; color: var(--teal);">3. Rust Toolchain / crates.io</h3>
       <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
         Install the entire suite via the umbrella meta-crate, or install daemons individually via <code>cargo install</code>:
       </p>
