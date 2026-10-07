@@ -417,6 +417,14 @@ local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code
         Generate real-time audio streamed to PipeWire or synthesize 1-step SD-Turbo visuals via isolated Varlink compute leases:
       </p>
       <div class="code-header">
+        <span>$ syn visual generate "Princess Zelda in the Kingdom of Hyrule, royal dress, golden hair, triforce, masterpiece, highly detailed"</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code>syn visual generate "Princess Zelda in the Kingdom of Hyrule, royal dress, golden hair, triforce, masterpiece, highly detailed"</code></pre>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0.4rem 0 0.75rem;">
+        &rarr; Synthesized artifact: <a href="images/zelda.png" target="_blank" style="color: var(--teal);">images/zelda.png</a>
+      </p>
+      <div class="code-header">
         <span>$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.StreamAudioOut</span>
         <button class="copy-btn">Copy</button>
       </div>

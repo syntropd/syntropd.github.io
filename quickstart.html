@@ -360,6 +360,23 @@ routerctl providers list
 # 3. Test latency and connectivity to a specific provider
 routerctl test runtimed-local</code></pre>
       </div>
+
+      <div style="margin-top: 1.5rem;">
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 6: Multimedia Visual Synthesis</h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+          Synthesize high-fidelity generative imagery directly through the inference engine:
+        </p>
+        <div class="code-header">
+          <span>$ syn visual generate "Princess Zelda in the Kingdom of Hyrule, royal dress, golden hair, triforce, masterpiece, highly detailed"</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <pre><code>/run/syntrop/visual_gen/zelda.png
+[Image: 512x512 png | Path: /run/syntrop/visual_gen/zelda.png]</code></pre>
+        <div style="margin-top: 1rem; text-align: center;">
+          <img src="images/zelda.png" alt="Princess Zelda synthesized by syntropd inference engine" style="max-width: 480px; width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,0.4);" />
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.5rem;">Synthesized artifact: <a href="images/zelda.png" target="_blank" style="color: var(--teal);">images/zelda.png</a></p>
+        </div>
+      </div>
     </section>
 
     <!-- Uninstallation & Purge Section -->
