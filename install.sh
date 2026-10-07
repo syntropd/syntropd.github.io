@@ -343,7 +343,9 @@ do_uninstall() {
   rm -f "${UNIT_DIR}/syntrop-triage@.service"
   rm -f "${UNIT_DIR}/syntrop-admin@.service"
   rm -f /usr/lib/systemd/user/syntrop-companion.service /etc/systemd/user/syntrop-companion.service
-  rm -f /etc/polkit-1/rules.d/49-syntrop-tool.rules
+  rm -f /etc/polkit-1/rules.d/49-syntrop-tool.rules /etc/polkit-1/rules.d/50-syntrop-inhibit.rules
+  rm -rf /etc/systemd/system/inferenced.service.d
+  rm -f /usr/lib/syntrop/bin/systemd-inhibit "${PREFIX}/lib/syntrop/bin/systemd-inhibit"
   rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}"
 
   systemctl daemon-reload 2>/dev/null || true
@@ -1408,8 +1410,8 @@ User=inferenced
 Group=syntrop
 SupplementaryGroups=render video sentry
 NoNewPrivileges=yes
-AmbientCapabilities=CAP_KILL
-CapabilityBoundingSet=CAP_KILL
+AmbientCapabilities=CAP_KILL CAP_SYS_PTRACE
+CapabilityBoundingSet=CAP_KILL CAP_SYS_PTRACE
 
 # Security & Sandboxing
 ProtectSystem=strict
@@ -1446,6 +1448,7 @@ SyslogIdentifier=inferenced
 
 LimitCORE=infinity
 Environment=RUST_BACKTRACE=1
+Environment="PATH=/usr/lib/syntrop/bin:/usr/local/bin:/usr/bin:/bin"
 
 [Install]
 WantedBy=multi-user.target
@@ -1723,6 +1726,92 @@ polkit.addRule(function(action, subject) {
 });
 EOF
   chmod 0644 /etc/polkit-1/rules.d/49-syntrop-tool.rules
+
+  # 11b. Polkit rule: allow unprivileged inferenced to acquire logind inhibitor locks without auth challenges
+  cat <<'EOF' > /etc/polkit-1/rules.d/50-syntrop-inhibit.rules
+// inferenced inhibitor: allow unprivileged inferenced and syntrop daemons
+// to acquire systemd-logind inhibitor locks (sleep, shutdown, idle) without prompting.
+polkit.addRule(function(action, subject) {
+    if (action.id.indexOf("org.freedesktop.login1.inhibit-") === 0) {
+        if (subject.user === "inferenced" || subject.user === "syntrop" || subject.isInGroup("syntrop")) {
+            return polkit.Result.YES;
+        }
+    }
+});
+EOF
+  chmod 0644 /etc/polkit-1/rules.d/50-syntrop-inhibit.rules
+
+  # 11c. systemd-inhibit normalization shim & drop-in override
+  # Intercepts invalid delay mode combinations on idle rejected by systemd-logind.
+  # systemd-logind only supports delay mode for 'sleep' and 'shutdown'.
+  mkdir -p /usr/lib/syntrop/bin "${PREFIX}/lib/syntrop/bin" /etc/systemd/system/inferenced.service.d
+  cat <<'EOF' > /usr/lib/syntrop/bin/systemd-inhibit
+#!/usr/bin/env bash
+# syntropd systemd-inhibit normalization shim
+# Fixes systemd-logind rejecting --mode=delay on idle by normalizing
+# invalid combinations (--what=sleep:idle with --mode=delay) to --what=sleep.
+# systemd-logind only supports delay mode for 'sleep' and 'shutdown'.
+set -euo pipefail
+
+args=()
+has_delay=false
+
+for arg in "$@"; do
+  if [[ "$arg" == "--mode=delay" || "$arg" == "-m"*"delay"* ]]; then
+    has_delay=true
+  fi
+done
+
+for arg in "$@"; do
+  if $has_delay && [[ "$arg" == --what=* ]]; then
+    val="${arg#--what=}"
+    new_val=$(echo "$val" | tr ':' '\n' | grep -E '^(shutdown|sleep)$' | paste -sd ':' - || true)
+    if [[ -z "$new_val" ]]; then
+      new_val="sleep"
+    fi
+    args+=("--what=${new_val}")
+  elif $has_delay && [[ "$arg" == "-w"* ]]; then
+    val="${arg#-w}"
+    new_val=$(echo "$val" | tr ':' '\n' | grep -E '^(shutdown|sleep)$' | paste -sd ':' - || true)
+    if [[ -z "$new_val" ]]; then
+      new_val="sleep"
+    fi
+    args+=("-w${new_val}")
+  else
+    args+=("$arg")
+  fi
+done
+
+REAL_INHIBIT=""
+for candidate in /usr/bin/systemd-inhibit /bin/systemd-inhibit; do
+  if [[ -x "$candidate" && "$candidate" != "$0" ]]; then
+    REAL_INHIBIT="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$REAL_INHIBIT" ]]; then
+  REAL_INHIBIT=$(which -a systemd-inhibit 2>/dev/null | grep -v "^$0$" | head -n 1 || true)
+fi
+
+if [[ -z "$REAL_INHIBIT" ]]; then
+  echo "systemd-inhibit: real systemd-inhibit binary not found on host" >&2
+  exit 127
+fi
+
+exec "$REAL_INHIBIT" "${args[@]}"
+EOF
+  chmod 0755 /usr/lib/syntrop/bin/systemd-inhibit
+  if [[ "${PREFIX}" != "/usr" && -d "${PREFIX}/lib/syntrop/bin" ]]; then
+    ln -sf /usr/lib/syntrop/bin/systemd-inhibit "${PREFIX}/lib/syntrop/bin/systemd-inhibit"
+  fi
+
+  cat <<'EOF' > /etc/systemd/system/inferenced.service.d/10-inhibit.conf
+[Service]
+# Prioritize syntrop inhibitor shim to normalize invalid delay combinations on idle
+Environment="PATH=/usr/lib/syntrop/bin:/usr/local/bin:/usr/bin:/bin"
+EOF
+  chmod 0644 /etc/systemd/system/inferenced.service.d/10-inhibit.conf
 
   # 12. systemd user unit: syntrop-companion.service
   local user_unit_dir="/usr/lib/systemd/user"
