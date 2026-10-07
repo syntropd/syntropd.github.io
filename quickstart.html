@@ -362,13 +362,29 @@ routerctl test runtimed-local</code></pre>
       </div>
     </section>
 
-    <!-- Post-Installation Note -->
-    <div class="callout">
-      <div class="callout-title">READY FOR STEP 2: PACKAGING WORKFLOWS</div>
-      <p>
-        The universal <code>install.sh</code> script and release build automation pipelines will be published under the GitHub Actions matrix for multi-distribution CI.
+    <!-- Uninstallation & Purge Section -->
+    <section class="diagram-card" id="uninstallation">
+      <div class="diagram-header">
+        <div>
+          <h2>Uninstallation &amp; Purge</h2>
+          <p>Clean removal of all daemons, services, shims, and declarative system policies.</p>
+        </div>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+        To uninstall syntropd from your machine while preserving downloaded model weights and configurations:
       </p>
-    </div>
+      <div class="code-header">
+        <span>$ syn uninstall</span>
+        <button class="copy-btn">Copy</button>
+      </div>
+      <pre><code># Or invoke the uninstaller directly:
+sudo syntrop-uninstall
+
+# To completely purge model weights, configs, and system accounts:
+syn uninstall --purge
+# Or via curl:
+curl -fsSL https://syntropd.github.io/uninstall.sh | sudo bash -s -- --purge</code></pre>
+    </section>
 
   </main>
 

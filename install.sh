@@ -322,8 +322,23 @@ check_system() {
 do_uninstall() {
   phase "Uninstall"
 
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [[ -x "${script_dir}/uninstall.sh" && "${script_dir}/uninstall.sh" != "${BASH_SOURCE[0]}" ]]; then
+    local uargs=("-y")
+    if [[ "${PURGE}" == "true" ]]; then uargs+=("--purge"); fi
+    if [[ "${DRY_RUN}" == "true" ]]; then uargs+=("--dry-run"); fi
+    if [[ "${VERBOSITY}" -ge 2 ]]; then uargs+=("--verbose"); fi
+    if [[ "${VERBOSITY}" -eq 0 ]]; then uargs+=("--quiet"); fi
+    "${script_dir}/uninstall.sh" "${uargs[@]}"
+    exit 0
+  fi
+
   if [[ "${DRY_RUN}" == "true" ]]; then
-    log_info "[DRY-RUN] Would disable syntrop-sockets.target, stop daemons, and remove unit files and binaries."
+    log_info "[DRY-RUN] Would disable syntrop-sockets.target, stop daemons, and remove unit files, policies, and binaries."
+    if [[ "${PURGE}" == "true" ]]; then
+      log_info "[DRY-RUN] Would purge all model brains (${MODEL_DIR}), configs (${CONFIG_DIR}), state data, and accounts."
+    fi
     exit 0
   fi
 
@@ -332,67 +347,98 @@ do_uninstall() {
     systemctl disable --now syntrop-sockets.target 2>/dev/null || true
   fi
 
-  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry" "sentry" "routerd")
+  local daemons=("inferenced" "modeld" "contextd" "toold" "runtimed" "systemd-sentry" "sentry" "routerd" "syntrop-tuning")
   for d in "${daemons[@]}"; do
     systemctl disable --now "${d}.socket" 2>/dev/null || true
     systemctl disable --now "${d}.service" 2>/dev/null || true
-    rm -f "${UNIT_DIR}/${d}.socket" "${UNIT_DIR}/${d}.service"
+    systemctl stop "${d}.service" 2>/dev/null || true
+    rm -f "${UNIT_DIR}/${d}.socket" "${UNIT_DIR}/${d}.service" "/usr/lib/systemd/system/${d}.service"
   done
 
-  rm -f "${UNIT_DIR}/syntrop-sockets.target"
-  rm -f "${UNIT_DIR}/syntrop-triage@.service"
-  rm -f "${UNIT_DIR}/syntrop-admin@.service"
+  for t in "syntrop-admin@" "syntrop-triage@"; do
+    local active_templates
+    active_templates=$(systemctl list-units "${t}*.service" --no-legend 2>/dev/null | awk '{print $1}' || true)
+    if [[ -n "${active_templates}" ]]; then
+      # shellcheck disable=SC2086
+      systemctl stop ${active_templates} 2>/dev/null || true
+    fi
+  done
+
+  rm -f "${UNIT_DIR}/syntrop-sockets.target" "/usr/lib/systemd/system/syntrop-sockets.target"
+  rm -f "${UNIT_DIR}/syntrop-triage@.service" "/usr/lib/systemd/system/syntrop-triage@.service"
+  rm -f "${UNIT_DIR}/syntrop-admin@.service" "/usr/lib/systemd/system/syntrop-admin@.service"
+  rm -f "${UNIT_DIR}/syntrop-tuning.service" "/usr/lib/systemd/system/syntrop-tuning.service"
+
+  systemctl --global disable syntrop-companion.service 2>/dev/null || true
   rm -f /usr/lib/systemd/user/syntrop-companion.service /etc/systemd/user/syntrop-companion.service
+
   rm -f /etc/polkit-1/rules.d/49-syntrop-tool.rules /etc/polkit-1/rules.d/50-syntrop-inhibit.rules
-  rm -rf /etc/systemd/system/inferenced.service.d
+  rm -f /usr/share/polkit-1/rules.d/49-syntrop-tool.rules /usr/share/polkit-1/rules.d/50-syntrop-inhibit.rules
+  rm -f /etc/sysusers.d/syntrop.conf /usr/lib/sysusers.d/syntrop.conf
+  rm -f /etc/tmpfiles.d/syntrop.conf /usr/lib/tmpfiles.d/syntrop.conf
+  rm -f /etc/udev/rules.d/70-syntrop-uinput.rules /usr/lib/udev/rules.d/70-syntrop-uinput.rules
+  if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules 2>/dev/null || true
+  fi
+
+  rm -rf /etc/systemd/system/inferenced.service.d /etc/systemd/system/runtimed.service.d /etc/systemd/system/toold.service.d /usr/lib/systemd/system/inferenced.service.d
   rm -f /usr/lib/syntrop/bin/systemd-inhibit "${PREFIX}/lib/syntrop/bin/systemd-inhibit"
-  rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}"
+  rm -rf /usr/lib/syntrop "${PREFIX}/lib/syntrop"
+  rm -rf "${RUN_DIR}" "${RUN_SENTRY_DIR}" "/run/systemd-inferenced"
 
   systemctl daemon-reload 2>/dev/null || true
+  systemctl --global daemon-reload 2>/dev/null || true
   systemctl reset-failed 2>/dev/null || true
 
   log_info "Removing binaries from ${BIN_DIR}..."
-  rm -f "${BIN_DIR}/syntropctl" \
-        "${BIN_DIR}/inferenced" \
-        "${BIN_DIR}/inferenctl" \
-        "${BIN_DIR}/modeld" \
-        "${BIN_DIR}/modelctl" \
-        "${BIN_DIR}/contextd" \
-        "${BIN_DIR}/contextctl" \
-        "${BIN_DIR}/toold" \
-        "${BIN_DIR}/toolctl" \
-        "${BIN_DIR}/runtimed" \
-        "${BIN_DIR}/runtimectl" \
-        "${BIN_DIR}/sentry" \
-        "${BIN_DIR}/systemd-sentry" \
-        "${BIN_DIR}/routerd" \
-        "${BIN_DIR}/routerctl" \
-        "${BIN_DIR}/syntropd" \
-        "${BIN_DIR}/syntrop" \
-        "${BIN_DIR}/syn"
-  rm -f "${COMPLETIONS_DIR}/syn" "${COMPLETIONS_DIR}/syntrop"
+  local remove_bins=(
+    "syntropctl" "inferenced" "inferenctl" "modeld" "modelctl"
+    "contextd" "contextctl" "toold" "toolctl" "runtimed" "runtimectl"
+    "sentry" "systemd-sentry" "routerd" "routerctl" "syntropd" "syntrop" "syn"
+    "syntrop-uninstall" "syn-uninstall"
+  )
+  for b in "${remove_bins[@]}"; do
+    rm -f "${BIN_DIR}/${b}" "/usr/bin/${b}"
+  done
+  rm -f "${COMPLETIONS_DIR}/syn" "${COMPLETIONS_DIR}/syntrop" "${COMPLETIONS_DIR}/syntropctl"
+  rm -f "/usr/share/zsh/site-functions/_syn" "/usr/share/zsh/site-functions/_syntrop"
+  rm -f "/usr/share/fish/vendor_completions.d/syn.fish" "/usr/share/fish/vendor_completions.d/syntrop.fish"
 
   if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
     local user_home
     user_home="$(eval echo "~${TARGET_USER}" 2>/dev/null || echo "")"
     if [[ -n "${user_home}" && -d "${user_home}/.local/bin" ]]; then
       log_info "Removing CLI symlinks from ${user_home}/.local/bin..."
-      for cbin in syntropctl routerctl syntropd syntrop syn inferenctl modelctl contextctl toolctl runtimectl; do
+      for cbin in "${remove_bins[@]}"; do
         rm -f "${user_home}/.local/bin/${cbin}"
       done
     fi
   fi
 
   if [[ "${PURGE}" == "true" ]]; then
-    log_info "--purge specified: removing configuration, caches, and system user/group..."
+    log_info "--purge specified: removing configuration, caches, and system user/groups..."
     rm -rf "${CONFIG_DIR}"
     rm -rf "${MODEL_DIR}"
     rm -rf "${ROLLBACK_DIR}"
     rm -rf "${TOOLD_DIR}"
-    userdel sentry 2>/dev/null || true
-    userdel -f syntrop 2>/dev/null || true
-    groupdel syntrop 2>/dev/null || true
-    log_ok "Purged configurations, data directories, and system user/group."
+    rm -rf "/var/lib/syntrop"
+    rm -rf "/var/lib/contextd"
+    rm -rf "/var/lib/inferenced"
+    rm -rf "/var/lib/systemd-sentry"
+    rm -rf "/var/log/inferenced"
+    for su in syntrop-admin syntrop-context syntrop-tool syntrop-runtime modeld inferenced sentry syntrop; do
+      userdel -f "${su}" 2>/dev/null || true
+    done
+    for sg in syntrop syntropd; do
+      groupdel "${sg}" 2>/dev/null || true
+    done
+    if [[ -n "${TARGET_USER}" && "${TARGET_USER}" != "root" ]]; then
+      if command -v gpasswd >/dev/null 2>&1; then
+        gpasswd -d "${TARGET_USER}" syntrop 2>/dev/null || true
+        gpasswd -d "${TARGET_USER}" syntropd 2>/dev/null || true
+      fi
+    fi
+    log_ok "Purged configurations, data directories, and system user/groups."
     result "Uninstalled and purged."
   else
     log_ok "Uninstallation complete. (Model cache in ${MODEL_DIR} and configs in ${CONFIG_DIR} preserved)."
@@ -891,6 +937,19 @@ install_binaries() {
   ln -sf "${BIN_DIR}/syntrop" "${BIN_DIR}/syn"
   log_ok "Linked ${BIN_DIR}/syn -> syntrop."
 
+  # Production uninstaller
+  if [[ -f "${script_dir}/uninstall.sh" ]]; then
+    cp -f "${script_dir}/uninstall.sh" "${BIN_DIR}/syntrop-uninstall"
+    chmod 0755 "${BIN_DIR}/syntrop-uninstall"
+  elif command -v curl >/dev/null 2>&1; then
+    curl -fsSL "https://syntropd.github.io/uninstall.sh" -o "${BIN_DIR}/syntrop-uninstall" 2>/dev/null || true
+    chmod 0755 "${BIN_DIR}/syntrop-uninstall" 2>/dev/null || true
+  fi
+  if [[ -f "${BIN_DIR}/syntrop-uninstall" ]]; then
+    ln -sf "${BIN_DIR}/syntrop-uninstall" "${BIN_DIR}/syn-uninstall"
+    log_ok "Installed uninstaller to ${BIN_DIR}/syntrop-uninstall (alias: syn-uninstall)."
+  fi
+
   # Native shell completions for syn and syntrop
   if [[ -x "${BIN_DIR}/syn" ]]; then
     mkdir -p "${COMPLETIONS_DIR}"
@@ -922,7 +981,7 @@ install_binaries() {
       rm -f "${sudo_home}/.local/bin/${dbin}"
     done
 
-    local cli_bins=("syntropctl" "routerctl" "syntropd" "syntrop" "syn" "inferenctl" "modelctl" "contextctl" "toolctl" "runtimectl")
+    local cli_bins=("syntropctl" "routerctl" "syntropd" "syntrop" "syn" "syntrop-uninstall" "syn-uninstall" "inferenctl" "modelctl" "contextctl" "toolctl" "runtimectl")
     for cbin in "${cli_bins[@]}"; do
       if [[ -f "${BIN_DIR}/${cbin}" ]]; then
         ln -sf "${BIN_DIR}/${cbin}" "${sudo_home}/.local/bin/${cbin}"
