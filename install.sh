@@ -2018,7 +2018,7 @@ activate_subsystem() {
     log_bold "------------------------------------------------------------"
     log_bold " NEXT STEP (required): bootstrap model family & router"
     log_bold "------------------------------------------------------------"
-    echo -e "  Run this command now: ${BOLD}syn setup${RESET} (or ${BOLD}syn setup --family qwen${RESET})"
+    echo -e "  Run this command now: ${BOLD}syn setup${RESET} (defaults to Gemma: gemma-2:2b + embeddinggemma-2)"
     echo "  It auto-sizes hardware envelopes, bootstraps model families, and connects them to the front door."
     echo ""
   fi
