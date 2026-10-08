@@ -273,21 +273,21 @@ CAS Storage Quota: 6.12 GiB / 64.00 GiB (9.6% utilized) • 3 models (1 pinned)<
       <div class="diagram-header">
         <div>
           <h2>6. <code>routerctl [SUBCOMMAND]</code> &amp; Wire Ingress Verification</h2>
-          <p>Inspect dynamic routing decisions, test upstream LLM providers, and verify wire proxying on port 8000.</p>
+          <p>Inspect dynamic routing decisions, test upstream LLM providers, and verify wire proxying on port 1982.</p>
         </div>
         <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">ROUTING</span>
       </div>
 
       <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1rem;">
-        <code>routerd</code> provides reverse proxy wire ingress on TCP port <code>32768</code> and Unix domain socket <code>/run/syntrop/router.sock</code>. Operators manage routing policies, test upstream providers, and verify model reachability using <code>routerctl</code> and standard HTTP utilities.
+        <code>routerd</code> provides reverse proxy wire ingress on TCP port <code>1982</code> and Unix domain socket <code>/run/syntrop/router.sock</code>. Operators manage routing policies, test upstream providers, and verify model reachability using <code>routerctl</code> and standard HTTP utilities.
       </p>
 
       <h3 style="font-size: 1rem; color: var(--teal); margin: 1.25rem 0 0.4rem;">Verify Wire Ingress via curl</h3>
       <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0.5rem;">
-        Verify that <code>routerd</code> is listening on port 8000 and responds to OpenAI-compatible model enumeration:
+        Verify that <code>routerd</code> is listening on port 1982 and responds to OpenAI-compatible model enumeration:
       </p>
       <div class="code-header">
-        <span>$ curl http://0.0.0.0:8000/v1/models</span>
+        <span>$ curl http://0.0.0.0:1982/v1/models</span>
         <button class="copy-btn">Copy</button>
       </div>
       <pre><code>{
@@ -321,7 +321,7 @@ CAS Storage Quota: 6.12 GiB / 64.00 GiB (9.6% utilized) • 3 models (1 pinned)<
       </div>
       <pre><code>● routerd.service - Intelligent Model Router and Wire Protocol Gateway
      Status: OPERATIONAL (Uptime: 1h 45m)
-     Wire Ingress: 0.0.0.0:8000, /run/syntrop/router.sock
+     Wire Ingress: 0.0.0.0:1982, /run/syntrop/router.sock
      Varlink IPC:  /run/syntrop/io.syntrop.Router1
      Memory RSS:   8.42 MiB (MemoryHigh: 24M, MemoryMax: 32M)
      Kernel PSI:   Memory 0.0% some (normal)
@@ -393,10 +393,10 @@ local-vllm        openai   hard    HEALTHY   0.9      62.1ms     qwen3:32b</code
         Specify reasoning token limits via OpenAI-compatible HTTP ingress, streaming reasoning chains separately from final content:
       </p>
       <div class="code-header">
-        <span>$ curl http://0.0.0.0:8000/v1/chat/completions</span>
+        <span>$ curl http://0.0.0.0:1982/v1/chat/completions</span>
         <button class="copy-btn">Copy</button>
       </div>
-      <pre><code>curl -N -s http://0.0.0.0:8000/v1/chat/completions \
+      <pre><code>curl -N -s http://0.0.0.0:1982/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "router:fast",

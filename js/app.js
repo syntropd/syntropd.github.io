@@ -125,9 +125,9 @@ const ARCH_NODE_DATA = {
   },
   'routerd': {
     title: 'routerd.service (Multi-Provider LLM Router & Reverse Proxy)',
-    socket: '/run/syntrop/io.syntrop.Router1 & 0.0.0.0:8000',
+    socket: '/run/syntrop/io.syntrop.Router1 & 0.0.0.0:1982',
     interface: 'io.syntrop.Router1',
-    kernel: 'Dual-stack TCP (8000), Unix domain sockets, kernel PSI (/proc/pressure/memory)',
+    kernel: 'Dual-stack TCP (1982), Unix domain sockets, kernel PSI (/proc/pressure/memory)',
     privilege: 'Slice=ai.slice, MemoryHigh=24M, MemoryMax=32M, ProtectSystem=strict, NoNewPrivileges=yes',
     desc: 'Intelligent multi-provider LLM reverse proxy and dynamic scoring router. Mediates between client workloads (sentry triage, user requests) and compute destinations (local runtimed/inferenced, LAN runtimed peers, and cloud LLM APIs). Incorporates kernel PSI pressure feedback to offload execution when host memory spikes.',
     methods: ['GetStatus', 'ListProviders', 'ListModels', 'RouteRequest', 'TestProvider']
@@ -224,9 +224,9 @@ const TRIAGE_STEPS = [
     step: 5,
     title: 'Phase 5: High-Precision Remediation Token Generation',
     latency: '142.0 ms',
-    desc: 'sentry dispatches triage queries to routerd on http://0.0.0.0:8000/v1 (model "fast"), with dynamic scoring across local runtimed and remote backends plus bounded timeouts and deterministic fallback. runtimed processes the prompt containing the sliced journal, PSI stats, and config diff to produce a deterministic root-cause diagnosis and remediation plan.',
+    desc: 'sentry dispatches triage queries to routerd on http://0.0.0.0:1982/v1 (model "fast"), with dynamic scoring across local runtimed and remote backends plus bounded timeouts and deterministic fallback. runtimed processes the prompt containing the sliced journal, PSI stats, and config diff to produce a deterministic root-cause diagnosis and remediation plan.',
     systemAction: 'Root cause identified: "OOM killer triggered due to restrictive 256M cgroup drop-in; recommendation: restore MemoryMax=4G".',
-    cmd: '$ curl -s http://0.0.0.0:8000/v1/chat/completions -d \'{"model":"fast","messages":[{"role":"user","content":"[TRIAGE PROMPT]..."}]}\'\n# Or Varlink direct call to runtimed fallback:\n$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate \'{"model":"qwen-triage:1.5b","prompt":"[TRIAGE PROMPT]...","max_tokens":256,"temperature":0.0}\''
+    cmd: '$ curl -s http://0.0.0.0:1982/v1/chat/completions -d \'{"model":"fast","messages":[{"role":"user","content":"[TRIAGE PROMPT]..."}]}\'\n# Or Varlink direct call to runtimed fallback:\n$ varlinkctl call /run/syntrop/io.syntrop.Runtime1 io.syntrop.Runtime1.Generate \'{"model":"qwen-triage:1.5b","prompt":"[TRIAGE PROMPT]...","max_tokens":256,"temperature":0.0}\''
   },
   {
     step: 6,

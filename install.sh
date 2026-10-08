@@ -666,7 +666,7 @@ EOF
 # syntropd Router & Reverse Proxy Daemon Configuration
 
 [daemon]
-listen_tcp = "0.0.0.0:8000"
+listen_tcp = "0.0.0.0:1982"
 listen_unix = "/run/syntrop/router.sock"
 varlink_socket = "/run/syntrop/io.syntrop.Router1"
 inferenced_socket = "/run/syntrop/io.syntrop.Inference1"
@@ -1684,8 +1684,8 @@ PartOf=syntrop-sockets.target
 
 [Socket]
 # File Descriptor 3: TCP dual-stack HTTP reverse proxy
-ListenStream=0.0.0.0:8000
-ListenStream=[::]:8000
+ListenStream=0.0.0.0:1982
+ListenStream=[::]:1982
 ReusePort=yes
 
 # File Descriptor 4/5: Local Unix domain socket reverse proxy
