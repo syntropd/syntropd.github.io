@@ -430,7 +430,7 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
       <div class="diagram-header">
         <div>
           <h2>routerd — Multi-Provider LLM Router &amp; Telemetry Reverse Proxy</h2>
-          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Router1</code> • Wire Ingress: <code>127.0.0.1:32768</code> &amp; <code>/run/syntrop/router.sock</code></p>
+          <p>Varlink Socket: <code>/run/syntrop/io.syntrop.Router1</code> • Wire Ingress: <code>0.0.0.0:8000</code> &amp; <code>/run/syntrop/router.sock</code></p>
         </div>
         <span class="badge" style="background: var(--teal-dim); color: var(--teal); padding: 0.25rem 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); border: 1px solid rgba(0,210,180,0.3);">WIRE ROUTER</span>
       </div>
@@ -466,7 +466,7 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
             </tr>
             <tr>
               <td><strong>Dual-Stack Wire Ingress</strong></td>
-              <td>Listens on dual-stack TCP <code>127.0.0.1:32768</code> / <code>[::1]:32768</code> and local Unix domain socket <code>/run/syntrop/router.sock</code> for standard OpenAI API compatibility.</td>
+              <td>Listens on dual-stack TCP <code>0.0.0.0:8000</code> / <code>[::1]:32768</code> and local Unix domain socket <code>/run/syntrop/router.sock</code> for standard OpenAI API compatibility.</td>
               <td><code>RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6</code></td>
             </tr>
             <tr>
@@ -494,7 +494,7 @@ RestrictAddressFamilies=AF_UNIX AF_NETLINK</code></pre>
       </div>
       <pre><code>● routerd.service - Intelligent Model Router and Wire Protocol Gateway
      Status: OPERATIONAL (Uptime: 2h 14m)
-     Wire Ingress: 127.0.0.1:32768, /run/syntrop/router.sock
+     Wire Ingress: 0.0.0.0:8000, /run/syntrop/router.sock
      Varlink IPC:  /run/syntrop/io.syntrop.Router1
      Memory RSS:   9.12 MiB (MemoryHigh: 24M, MemoryMax: 32M)
      Kernel PSI:   Memory 0.0% some (normal)

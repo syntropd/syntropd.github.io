@@ -228,8 +228,8 @@ cargo install routerctl</code></pre>
           <button class="copy-btn">Copy</button>
         </div>
         <pre><code>LISTEN                                 UNIT                     ACTIVATES
-127.0.0.1:32768                        routerd.socket           routerd.service
-[::1]:32768                            routerd.socket           routerd.service
+127.0.0.1:8000                        routerd.socket           routerd.service
+[::1]:8000                            routerd.socket           routerd.service
 /run/syntrop/router.sock               routerd.socket           routerd.service
 /run/syntrop/io.syntrop.Router1        routerd.socket           routerd.service
 /run/syntrop/io.syntrop.Inference1     inferenced.socket        inferenced.service
@@ -345,14 +345,14 @@ Hardware acceleration is operational.</code></pre>
       <div>
         <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Step 5: Verify Wire Proxy Ingress &amp; LLM Providers</h3>
         <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
-          Verify <code>routerd</code> wire ingress on port 32768 using standard <code>curl</code> and test upstream provider health:
+          Verify <code>routerd</code> wire ingress on port 8000 using standard <code>curl</code> and test upstream provider health:
         </p>
         <div class="code-header">
           <span>Terminal</span>
           <button class="copy-btn">Copy</button>
         </div>
         <pre><code># 1. Query available models via HTTP wire proxy ingress
-curl http://127.0.0.1:32768/v1/models
+curl http://127.0.0.1:8000/v1/models
 
 # 2. Inspect configured routing providers
 routerctl providers list
